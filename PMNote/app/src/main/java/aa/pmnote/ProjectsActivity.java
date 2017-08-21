@@ -410,7 +410,7 @@ public class ProjectsActivity extends AppCompatActivity {
             ll.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Intent intent = new Intent(getActivity(), /*TODO: IMPORTANT AF - CHANGE THIS TO VALID ACTIVITY*/null);
+                    Intent intent = new Intent(getActivity(), ((int)view.getTag() == PERSON ? ProfileView.class :ProfileView.class ));
                     String extraInfo = ((TextView)((LinearLayout)view).getChildAt(1)).getText().toString();
                     intent.putExtra(INFO_TAG, extraInfo);
                     startActivity(intent);

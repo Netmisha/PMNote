@@ -22,6 +22,10 @@
             android:name=".ProjectsActivity"
             android:label="@string/title_activity_projects"
             android:theme="@style/AppTheme.NoActionBar"></activity>
-    </application>
+    <activity
+        android:name="aa.pmnote.ProfileView"
+        android:label="Profile"
+        android:theme="@style/AppTheme.NoActionBar"></activity>
+</application>
 
 </manifest>
