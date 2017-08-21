@@ -60,6 +60,8 @@ public class LoginActivity extends AppCompatActivity {
                 //if client logged in
                 if(firebaseAuth.getCurrentUser() != null)
                 {
+                    //clear password
+                    mPasswordField.setText("");
                     //go to the project activity
                     startActivity(new Intent(LoginActivity.this, ProjectsActivity.class));
                 }
@@ -122,7 +124,7 @@ public class LoginActivity extends AppCompatActivity {
     private void signInWithGoogle() {
         Intent signInIntent = Auth.GoogleSignInApi.getSignInIntent(mGoogleApiClient);
         startActivityForResult(signInIntent, RC_SIGN_IN);
-        ((TextView)mSigninProgressBar.getChildAt(1)).setText("Signing in...");
+        ((TextView)mSigninProgressBar.getChildAt(1)).setText("Signing in Google...");
     }
 
     @Override
@@ -143,6 +145,7 @@ public class LoginActivity extends AppCompatActivity {
 
     private void firebaseAuthWithGoogle(GoogleSignInAccount acct) {
         Log.d(TAG, "firebaseAuthWithGoogle:" + acct.getId());
+        ((TextView)mSigninProgressBar.getChildAt(1)).setText("Getting credentials...");
 
         AuthCredential credential = GoogleAuthProvider.getCredential(acct.getIdToken(), null);
         mAuth.signInWithCredential(credential)
