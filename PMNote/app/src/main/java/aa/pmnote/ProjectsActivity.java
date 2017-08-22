@@ -139,6 +139,13 @@ public class ProjectsActivity extends AppCompatActivity {
                 }
             }
         };
+
+        findViewById(R.id.fab).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                AddNewItem();
+            }
+        });
     }
 
     private void AddNewItem()
@@ -190,7 +197,6 @@ public class ProjectsActivity extends AppCompatActivity {
                 switch (mViewPager.getCurrentItem())
                 {
                     case Defines.PROJECTS_FRAGMENT:
-                        int i = spinner.getSelectedItemPosition();
                         switch (spinner.getSelectedItemPosition())
                         {
                             case 0:
@@ -207,7 +213,7 @@ public class ProjectsActivity extends AppCompatActivity {
             }
         });
 
-        //set on 'cancer' listener
+        //set on 'cancel' listener
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -305,6 +311,7 @@ public class ProjectsActivity extends AppCompatActivity {
             }
         }
     }
+
     @Override
     public boolean onContextItemSelected(MenuItem item)
     {
@@ -404,6 +411,7 @@ public class ProjectsActivity extends AppCompatActivity {
         @Override
         public void onStart() {
             super.onStart();
+            mLinearLayout.removeAllViews();
             mAuth.addAuthStateListener(mAuthStateListener);
         }
 
@@ -601,12 +609,14 @@ public class ProjectsActivity extends AppCompatActivity {
             dr.child("tasks").addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                    AddItem(dataSnapshot.getKey(), dataSnapshot.child("status").getValue(boolean.class));
+                    String name = dataSnapshot.getKey();
+                    boolean status = (boolean)dataSnapshot.child("status").getValue();
+                    AddItem(name, status);
                 }
 
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-                    ChangeCheckBoxStatus(dataSnapshot.getKey(), dataSnapshot.child("status").getValue(boolean.class));
+                    ChangeCheckBoxStatus(dataSnapshot.getKey(), (boolean)dataSnapshot.child("status").getValue());
                 }
 
                 @Override
