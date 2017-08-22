@@ -430,7 +430,7 @@ public class ProjectsActivity extends AppCompatActivity {
                 DatabaseReference child = mRootRef;
                 switch (spinner.getSelectedItemPosition()) {
                     case 0:
-                        child.child("people").child(name).child("Widgets").child("None").setValue(true);
+                        child.child("people").child(name).child("None").setValue(true);
                         break;
                     case 1:
                         child.child("projects").child(name).child("status").setValue(true);
