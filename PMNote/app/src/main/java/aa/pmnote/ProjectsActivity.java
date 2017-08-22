@@ -194,7 +194,9 @@ public class ProjectsActivity extends AppCompatActivity {
                         switch (spinner.getSelectedItemPosition())
                         {
                             case 0:
-                                child.child("people").child(name).child("ph").setValue(true);
+                                child.child("people").child(name).child("Projects").child("None").setValue(true);
+                                child.child("people").child(name).child("Tasks").child("None").setValue(true);
+                                child.child("people").child(name).child("Widgets").child("None").setValue(true);
                                 break;
                             case 1:
                                 child.child("projects").child(name).child("ph").setValue(true);
