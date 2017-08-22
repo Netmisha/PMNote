@@ -30,6 +30,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
@@ -47,7 +48,9 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import java.lang.reflect.Array;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 class Defines {
     public enum LinearLayoutType {
@@ -58,7 +61,6 @@ class Defines {
 
     public final static int PROJECTS_FRAGMENT = 0;
     public final static int TASKS_FRAGMENT = 1;
-
 
     public final static int TEXT_VIEW_POSITION = 1;
     public final static int ITEM_SIZE_IN_VIEWS = 2;
@@ -85,6 +87,100 @@ public class ProjectsActivity extends AppCompatActivity {
     private FirebaseAuth.AuthStateListener mAuthStateListener;
     private DatabaseReference mRootRef;
 
+    private Spinner mSearchOptions;
+
+    private ArrayAdapter<String> mArrayAdapter;
+    private ArrayList<String> mCurrentSpinnerList = new ArrayList<>();
+    private int mSavedSpinnerPosition = 0;
+
+    private void SetArrayList(ArrayList<String> list, Defines.LinearLayoutType llt)
+    {
+        list.clear();
+        if(llt == Defines.LinearLayoutType.TASK)
+        {
+            list.add("Show All");
+            list.add("Show Open");
+            list.add("Show Completed");
+        }
+        else
+        {
+            list.add("Show All");
+            list.add("Show Projects");
+            list.add("Show People");
+        }
+    }
+
+    private void HideItemsBySearchOptions(int search_option)
+    {
+        LinearLayout ll = mSectionsPagerAdapter.getFragment(mViewPager.getCurrentItem()).GetLinearLayout();
+        if(mViewPager.getCurrentItem() == 0) {
+            switch (search_option) {
+                case 0:
+                    for (int i = 0; i < ll.getChildCount(); ++i) {
+                        ll.getChildAt(i).setVisibility(View.VISIBLE);
+                    }
+                    break;
+                case 1:
+                    for (int i = 0; i < ll.getChildCount(); i += 2) {
+                        boolean isProject = Defines.LinearLayoutType.PROJECT ==((ImageView)((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
+                        if (!isProject) {
+                            ll.getChildAt(i).setVisibility(View.GONE);
+                            ll.getChildAt(i + 1).setVisibility(View.GONE);
+                        } else {
+                            ll.getChildAt(i).setVisibility(View.VISIBLE);
+                            ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                        }
+                    }
+                    break;
+                case 2:
+                    for (int i = 0; i < ll.getChildCount(); i += 2) {
+                        boolean isProject = Defines.LinearLayoutType.PERSON ==((ImageView)((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
+                        if (!isProject) {
+                            ll.getChildAt(i).setVisibility(View.GONE);
+                            ll.getChildAt(i + 1).setVisibility(View.GONE);
+                        } else {
+                            ll.getChildAt(i).setVisibility(View.VISIBLE);
+                            ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                        }
+                    }
+                    break;
+            }
+        }
+        else {
+            switch (search_option) {
+                case 0:
+                    for (int i = 0; i < ll.getChildCount(); ++i) {
+                        ll.getChildAt(i).setVisibility(View.VISIBLE);
+                    }
+                    break;
+                case 1:
+                    for (int i = 0; i < ll.getChildCount(); i += 2) {
+                        boolean isCompeted = ((CheckBox) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).isChecked();
+                        if (isCompeted) {
+                            ll.getChildAt(i).setVisibility(View.GONE);
+                            ll.getChildAt(i + 1).setVisibility(View.GONE);
+                        } else {
+                            ll.getChildAt(i).setVisibility(View.VISIBLE);
+                            ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                        }
+                    }
+                    break;
+                case 2:
+                    for (int i = 0; i < ll.getChildCount(); i += 2) {
+                        boolean isCompeted = ((CheckBox) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).isChecked();
+                        if (!isCompeted) {
+                            ll.getChildAt(i).setVisibility(View.GONE);
+                            ll.getChildAt(i + 1).setVisibility(View.GONE);
+                        } else {
+                            ll.getChildAt(i).setVisibility(View.VISIBLE);
+                            ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                        }
+                    }
+                    break;
+            }
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -101,6 +197,23 @@ public class ProjectsActivity extends AppCompatActivity {
         mViewPager = (ViewPager) findViewById(R.id.container);
         mViewPager.setAdapter(mSectionsPagerAdapter);
 
+        SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.PROJECT);
+        mSearchOptions = (Spinner)findViewById(R.id.searchOptions);
+        mArrayAdapter = new ArrayAdapter<String>(this, R.layout.spinner_item, mCurrentSpinnerList);
+        mSearchOptions.setAdapter(mArrayAdapter);
+
+        mSearchOptions.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
+                HideItemsBySearchOptions(position);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                //do nothing, duh
+            }
+        });
+
         //who cares about depreciation anyway
         mViewPager.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
@@ -112,11 +225,18 @@ public class ProjectsActivity extends AppCompatActivity {
                 {
                     case 0:
                         setTitle("Projects and People");
+                        SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.PROJECT);
                         break;
                     case 1:
                         setTitle("Tasks");
+                        SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.TASK);
                         break;
                 }
+
+                mArrayAdapter.notifyDataSetChanged();
+                int temp = mSearchOptions.getSelectedItemPosition();
+                mSearchOptions.setSelection(mSavedSpinnerPosition);
+                mSavedSpinnerPosition = temp;
             }
 
             @Override
@@ -270,7 +390,7 @@ public class ProjectsActivity extends AppCompatActivity {
                         searchView.setQuery("",false);
                         searchView.setIconified(true);
 
-                        HideAllNonMatches(null);
+                        HideItemsBySearchOptions(mSearchOptions.getSelectedItemPosition());
                     }
                 });
 
@@ -524,6 +644,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     break;
             }
 
+            iv.setTag(llt);
             iv.setPadding(10, 10, 0, 0);
             return iv;
         }
