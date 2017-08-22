@@ -1,18 +1,22 @@
 package aa.pmnote;
 ;
+import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.text.Editable;
 import android.text.InputType;
+import android.text.TextWatcher;
 import android.view.View;
 
 import android.content.DialogInterface;
 import android.app.AlertDialog;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.CompoundButton;
 import android.widget.Toast;
 
 import android.widget.SeekBar;
@@ -27,11 +31,17 @@ import android.widget.LinearLayout;
 import 	android.widget.Spinner;
 
 import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
 import aa.pmnote.CustomAdapter;import aa.pmnote.R;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Vector;
 
 public class ProfileView extends AppCompatActivity
@@ -43,6 +53,13 @@ public class ProfileView extends AppCompatActivity
     private FirebaseAuth.AuthStateListener mAuthStateListener;
     private DatabaseReference mRootRef;
 
+    //how widgets will be saved on firebase
+    private final static int NOTE = 1;
+    private final static int CHECKBOX = 2;
+    private final static int SLIDER = 3;
+    private final static int COMBOBOX = 4;
+    private final static int SPINBOX = 5;
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
 
@@ -50,6 +67,10 @@ public class ProfileView extends AppCompatActivity
         setContentView(R.layout.activity_profile_view);
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
+
+        //vars
+        slider_arch = new Vector<TextView>();
+        mName = getIntent().getStringExtra(NAME_TAG);
 
         mAuth = FirebaseAuth.getInstance();
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
@@ -61,17 +82,14 @@ public class ProfileView extends AppCompatActivity
                 else
                 {
                     String uid = firebaseAuth.getCurrentUser().getUid();
-                    mRootRef = FirebaseDatabase.getInstance().getReference().child("users").child(uid);
+                    mRootRef = FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("people").child(mName);
                 }
             }
         };
 
 
+        SetUpWidgetList(mRootRef);
         SetProjects();
-
-        //vars
-        slider_arch = new Vector<TextView>();
-        mName = getIntent().getStringExtra(NAME_TAG);
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -114,6 +132,19 @@ public class ProfileView extends AppCompatActivity
         });
     }
 
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mAuth.addAuthStateListener(mAuthStateListener);
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (mAuthStateListener != null) {
+            mAuth.removeAuthStateListener(mAuthStateListener);
+        }
+    }
 
     private void addNote()
     {
@@ -142,21 +173,8 @@ public class ProfileView extends AppCompatActivity
                     public void onClick(DialogInterface dialog, int which) {
                         if(!input.getText().toString().isEmpty())
                         {
-                            EditText et = new EditText(ProfileView.this);
-                            TextView note_name = new TextView(ProfileView.this);
-                            note_name.setText(input.getText().toString());
-                            et.setHint("Enter your note here... ");
-                            LinearLayout note_layout = new LinearLayout(ProfileView.this);
-                            note_layout.setOrientation(LinearLayout.VERTICAL);
-                            note_layout.addView(note_name);
-                            note_layout.addView(et);
-
-
-                            LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
-                            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                                    LinearLayout.LayoutParams.MATCH_PARENT,
-                                    LinearLayout.LayoutParams.WRAP_CONTENT); //height enough
-                            ll.addView(note_layout, lp);
+                            SetNote(input.getText().toString(), "");
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(NOTE);
                         }
                          else
                         {
@@ -176,6 +194,46 @@ public class ProfileView extends AppCompatActivity
 
         alertDialog.show();
 
+
+    }
+
+    void SetNote(final String n_name, String inner_text)
+    {
+        final EditText et = new EditText(ProfileView.this);
+        et.addTextChangedListener(new TextWatcher()
+        {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after)
+            {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count)
+            {}
+
+            @Override
+            public void afterTextChanged(Editable s)
+            {
+                mRootRef.child("Widgets").child(n_name).child("Text").setValue(et.getText().toString());
+            }
+
+        });
+        TextView note_name = new TextView(ProfileView.this);
+        note_name.setText(n_name);
+        if(inner_text.isEmpty())
+            et.setHint("Enter your note here... ");
+        else
+            et.setText(inner_text);
+        LinearLayout note_layout = new LinearLayout(ProfileView.this);
+        note_layout.setOrientation(LinearLayout.VERTICAL);
+        note_layout.addView(note_name);
+        note_layout.addView(et);
+
+
+        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT); //height enough
+        ll.addView(note_layout, lp);
 
     }
 
@@ -209,7 +267,9 @@ public class ProfileView extends AppCompatActivity
                     {
                         if(!input.getText().toString().isEmpty())
                         {
-                           SetCheckBox(input.getText().toString());
+                           SetCheckBox(input.getText().toString(), false);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(CHECKBOX);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("isChecked").setValue(false);
                         }
                          else
                         {
@@ -232,10 +292,24 @@ public class ProfileView extends AppCompatActivity
     }
 
 
-    void SetCheckBox(String input)
+    void SetCheckBox(final String input, final Boolean checked)
     {
         CheckBox cb = new CheckBox(ProfileView.this);
+        cb.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                if (b)
+                {
+                    mRootRef.child("Widgets").child(input).child("isChecked").setValue(true);
+                }
+                else
+                {
+                    mRootRef.child("Widgets").child(input).child("isChecked").setValue(false);
+                }
+            }
+        });
         cb.setText(input);
+        cb.setChecked(checked);
 
         LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -283,7 +357,11 @@ public class ProfileView extends AppCompatActivity
 
                         if(!input.getText().toString().isEmpty() && !max_input.getText().toString().isEmpty())
                         {
-                         SetSeekBar(input.getText().toString(), Integer.parseInt(max_input.getText().toString()));
+                         SetSeekBar(input.getText().toString(), Integer.parseInt(max_input.getText().toString()), 0);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(SLIDER);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Max_Num").setValue(max_input.getText().toString());
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Cur_Num").setValue(0);
+
                         }
                          else
                         {
@@ -306,12 +384,13 @@ public class ProfileView extends AppCompatActivity
     }
 
     private Vector<TextView> slider_arch;
-    void SetSeekBar(String name, int max)
+    void SetSeekBar(final String name, final int max, final int current_num)
     {
         SeekBar sbar = new SeekBar(ProfileView.this);
         slider_arch.add(new TextView(ProfileView.this));
 
         sbar.setMax(max);
+        sbar.setProgress(current_num);
         final String UserText = name;
         slider_arch.get(slider_arch.size() - 1).setText(UserText + ": " + sbar.getProgress() + "/" + sbar.getMax());
         final TextView slider_txt = slider_arch.get(slider_arch.size() - 1);
@@ -323,11 +402,13 @@ public class ProfileView extends AppCompatActivity
                 progress = progresValue;
                 TextView slider_tmp = slider_txt;
                 slider_tmp.setText(UserText + ": " + progress + "/" + seekBar.getMax());
+
+                mRootRef.child("Widgets").child(name).child("Cur_Num").setValue(progress);
             }
 
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
-                Toast.makeText(getApplicationContext(), "Started tracking seekbar", Toast.LENGTH_SHORT).show();
+
             }
 
             @Override
@@ -421,7 +502,13 @@ public class ProfileView extends AppCompatActivity
                         }//set up spinner
                         if( !input.getText().toString().isEmpty() && active_item!=0 )
                         {
-                           SetCombobox(input.getText().toString(), final_list);
+                           SetCombobox(input.getText().toString(), final_list, "");
+
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(COMBOBOX);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Items_Num").setValue(active_item);
+                            List items_list = new ArrayList<String>(Arrays.asList(final_list));
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Items").setValue(final_list);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Chosen_One").setValue(final_list[0]);
                         }
                         else
                         {
@@ -439,7 +526,7 @@ public class ProfileView extends AppCompatActivity
         alertDialog.show();
     }
 
-    void SetCombobox(String name, String[] list)
+    void SetCombobox(final String name, final String[] list, String chosen)
     {
         TextView s_name = new TextView(ProfileView.this);
         s_name.setText(name);
@@ -452,12 +539,15 @@ public class ProfileView extends AppCompatActivity
             @Override
             public void onItemSelected(AdapterView<?> parent, View view,
                                        int pos, long id) {
+                mRootRef.child("Widgets").child(name).child("Chosen_One").setValue(list[pos]);
             }
         });
         CustomAdapter adapter = new CustomAdapter(ProfileView.this,
                 android.R.layout.simple_spinner_item, list);
         adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinner.setAdapter(adapter);
+        if(!chosen.isEmpty())
+        spinner.setSelection(adapter.getPosition(chosen));
 
         LinearLayout s_layout = new LinearLayout(ProfileView.this);
         s_layout.setOrientation(LinearLayout.HORIZONTAL);
@@ -498,6 +588,86 @@ public class ProfileView extends AppCompatActivity
         hd.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
         hd.setBackgroundColor(Color.GRAY);
         return hd;
+    }
+
+    //get widget list from database
+    private void SetUpWidgetList(DatabaseReference dr)
+    {
+            dr.child("Widgets").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                String widget_name = dataSnapshot.getKey();
+                int type = dataSnapshot.child("Type").getValue(Integer.class);
+                switch(type)
+                {
+                    case NOTE:
+                       SetNote(widget_name, dataSnapshot.child("Text").getValue(String.class) );
+                        break;
+
+                    case CHECKBOX:
+                        SetCheckBox(widget_name, dataSnapshot.child("isChecked").getValue(Boolean.class));
+                        break;
+
+                    case SLIDER:
+                        SetSeekBar(widget_name, dataSnapshot.child("Max_Num").getValue(Integer.class), dataSnapshot.child("Cur_Num").getValue(Integer.class));
+                        break;
+
+                    case COMBOBOX:
+                        SetCombobox(widget_name, dataSnapshot.child("Items").getValue(String[].class),dataSnapshot.child("Chosen_One").getValue(String.class));
+                        break;
+
+                    case SPINBOX:
+                        break;
+                }
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+               // RemovePersonOrProject(dataSnapshot.getKey());
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
+        dr.child("people").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+               // AddItem(dataSnapshot.getKey(), Defines.LinearLayoutType.PERSON);
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+               // RemovePersonOrProject(dataSnapshot.getKey());
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
     }
 }
 
