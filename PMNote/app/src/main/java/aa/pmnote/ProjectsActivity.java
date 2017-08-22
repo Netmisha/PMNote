@@ -1,10 +1,13 @@
 package aa.pmnote;
 
+import android.app.DatePickerDialog;
 import android.app.SearchManager;
+import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
+import android.icu.text.DateFormat;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -30,15 +33,19 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 
+import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.TimePicker;
+import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
@@ -47,7 +54,12 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 
+import java.lang.reflect.Array;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Calendar;
+import java.util.Locale;
 
 class Defines {
     public enum LinearLayoutType {
@@ -58,7 +70,6 @@ class Defines {
 
     public final static int PROJECTS_FRAGMENT = 0;
     public final static int TASKS_FRAGMENT = 1;
-
 
     public final static int TEXT_VIEW_POSITION = 1;
     public final static int ITEM_SIZE_IN_VIEWS = 2;
@@ -85,6 +96,105 @@ public class ProjectsActivity extends AppCompatActivity {
     private FirebaseAuth.AuthStateListener mAuthStateListener;
     private DatabaseReference mRootRef;
 
+    private Spinner mSearchOptions;
+
+    private ArrayAdapter<String> mArrayAdapter;
+    private ArrayList<String> mCurrentSpinnerList = new ArrayList<>();
+    private int mSavedSpinnerPosition = 0;
+
+    public void RefreshCurrentFragment()
+    {
+        HideItemsBySearchOptions(mSearchOptions.getSelectedItemPosition());
+    }
+
+    private void SetArrayList(ArrayList<String> list, Defines.LinearLayoutType llt)
+    {
+        list.clear();
+        if(llt == Defines.LinearLayoutType.TASK)
+        {
+            list.add("Show All");
+            list.add("Show Open");
+            list.add("Show Completed");
+        }
+        else
+        {
+            list.add("Show All");
+            list.add("Show Projects");
+            list.add("Show People");
+        }
+    }
+
+    private void HideItemsBySearchOptions(int search_option)
+    {
+        LinearLayout ll = mSectionsPagerAdapter.getFragment(mViewPager.getCurrentItem()).GetLinearLayout();
+        if(mViewPager.getCurrentItem() == 0) {
+            switch (search_option) {
+                case 0:
+                    for (int i = 0; i < ll.getChildCount(); ++i) {
+                        ll.getChildAt(i).setVisibility(View.VISIBLE);
+                    }
+                    break;
+                case 1:
+                    for (int i = 0; i < ll.getChildCount(); i += 2) {
+                        boolean isProject = Defines.LinearLayoutType.PROJECT ==((ImageView)((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
+                        if (!isProject) {
+                            ll.getChildAt(i).setVisibility(View.GONE);
+                            ll.getChildAt(i + 1).setVisibility(View.GONE);
+                        } else {
+                            ll.getChildAt(i).setVisibility(View.VISIBLE);
+                            ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                        }
+                    }
+                    break;
+                case 2:
+                    for (int i = 0; i < ll.getChildCount(); i += 2) {
+                        boolean isProject = Defines.LinearLayoutType.PERSON ==((ImageView)((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
+                        if (!isProject) {
+                            ll.getChildAt(i).setVisibility(View.GONE);
+                            ll.getChildAt(i + 1).setVisibility(View.GONE);
+                        } else {
+                            ll.getChildAt(i).setVisibility(View.VISIBLE);
+                            ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                        }
+                    }
+                    break;
+            }
+        }
+        else {
+            switch (search_option) {
+                case 0:
+                    for (int i = 0; i < ll.getChildCount(); ++i) {
+                        ll.getChildAt(i).setVisibility(View.VISIBLE);
+                    }
+                    break;
+                case 1:
+                    for (int i = 0; i < ll.getChildCount(); i += 2) {
+                        boolean isCompeted = ((CheckBox) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).isChecked();
+                        if (isCompeted) {
+                            ll.getChildAt(i).setVisibility(View.GONE);
+                            ll.getChildAt(i + 1).setVisibility(View.GONE);
+                        } else {
+                            ll.getChildAt(i).setVisibility(View.VISIBLE);
+                            ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                        }
+                    }
+                    break;
+                case 2:
+                    for (int i = 0; i < ll.getChildCount(); i += 2) {
+                        boolean isCompeted = ((CheckBox) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).isChecked();
+                        if (!isCompeted) {
+                            ll.getChildAt(i).setVisibility(View.GONE);
+                            ll.getChildAt(i + 1).setVisibility(View.GONE);
+                        } else {
+                            ll.getChildAt(i).setVisibility(View.VISIBLE);
+                            ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                        }
+                    }
+                    break;
+            }
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -101,6 +211,23 @@ public class ProjectsActivity extends AppCompatActivity {
         mViewPager = (ViewPager) findViewById(R.id.container);
         mViewPager.setAdapter(mSectionsPagerAdapter);
 
+        SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.PROJECT);
+        mSearchOptions = (Spinner)findViewById(R.id.searchOptions);
+        mArrayAdapter = new ArrayAdapter<String>(this, R.layout.spinner_item, mCurrentSpinnerList);
+        mSearchOptions.setAdapter(mArrayAdapter);
+
+        mSearchOptions.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
+                HideItemsBySearchOptions(position);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+                //do nothing, duh
+            }
+        });
+
         //who cares about depreciation anyway
         mViewPager.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
@@ -112,11 +239,18 @@ public class ProjectsActivity extends AppCompatActivity {
                 {
                     case 0:
                         setTitle("Projects and People");
+                        SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.PROJECT);
                         break;
                     case 1:
                         setTitle("Tasks");
+                        SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.TASK);
                         break;
                 }
+
+                mArrayAdapter.notifyDataSetChanged();
+                int temp = mSearchOptions.getSelectedItemPosition();
+                mSearchOptions.setSelection(mSavedSpinnerPosition);
+                mSavedSpinnerPosition = temp;
             }
 
             @Override
@@ -139,10 +273,119 @@ public class ProjectsActivity extends AppCompatActivity {
                 }
             }
         };
+
+        findViewById(R.id.fab).setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                switch(mViewPager.getCurrentItem())
+                {
+                    case Defines.PROJECTS_FRAGMENT:
+                        AddNewProjectPerson();
+                        break;
+                    case Defines.TASKS_FRAGMENT:
+                        AddNewTask();
+                        break;
+                }
+            }
+        });
     }
 
-    private void AddNewItem()
-    {
+    private void AddNewTask() {
+        //build dialog with request for name input
+        AlertDialog.Builder builder = new AlertDialog.Builder(ProjectsActivity.this);
+        builder.setTitle("Enter item info");
+
+        final LinearLayout ll = new LinearLayout(ProjectsActivity.this);
+        ll.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+        ll.setOrientation(LinearLayout.VERTICAL);
+        ll.setGravity(Gravity.CENTER);
+
+        final EditText nameInput = new EditText(ProjectsActivity.this);
+        nameInput.setInputType(InputType.TYPE_CLASS_TEXT);
+        nameInput.setHint("Name");
+        ll.addView(nameInput);
+
+        final EditText timeInput = new EditText(ProjectsActivity.this);
+        timeInput.setKeyListener(null);
+        timeInput.setHint("Expire Time");
+        timeInput.setVisibility(View.GONE);
+        timeInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if(b) {
+                    Calendar c = Calendar.getInstance();
+                    TimePickerDialog tpd = new TimePickerDialog(ProjectsActivity.this, new TimePickerDialog.OnTimeSetListener() {
+                        @Override
+                        public void onTimeSet(TimePicker timePicker, int hour, int minute) {
+                            timeInput.setText(hour + ":" + minute);
+                        }
+                    }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true);
+                    tpd.setTitle("Pick deadline time");
+                    tpd.show();
+                }
+            }
+        });
+
+        final EditText dateInput = new EditText(ProjectsActivity.this);
+        dateInput.setKeyListener(null);
+        dateInput.setHint("Expire Date");
+        dateInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if(b) {
+                    Calendar c = Calendar.getInstance();
+                    DatePickerDialog dpd = new DatePickerDialog(ProjectsActivity.this, new DatePickerDialog.OnDateSetListener() {
+                        @Override
+                        public void onDateSet(DatePicker datePicker, int year, int month, int day) {
+                            Calendar date = Calendar.getInstance();
+                            date.set(year, month, day);
+                            SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy", Locale.ENGLISH);
+                            dateInput.setText(sdf.format(date.getTime()));
+                            timeInput.setVisibility(View.VISIBLE);
+                        }
+                    }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DATE));
+                    dpd.setTitle("Pick deadline date.");
+                    dpd.show();
+                }
+            }
+        });
+        ll.addView(dateInput);
+        ll.addView(timeInput);
+
+        final EditText desctiptionInput = new EditText(ProjectsActivity.this);
+        desctiptionInput.setHint("Description");
+        ll.addView(desctiptionInput);
+
+        builder.setView(ll);
+
+        //set on 'ok' listener
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String name = nameInput.getText().toString();
+                if(!name.isEmpty()) {
+                    DatabaseReference child = mRootRef.child("tasks").child(name);
+                    child.child("status").setValue(false);
+                    child.child("date").setValue(dateInput.getText().toString());
+                    child.child("description").setValue(desctiptionInput.getText().toString());
+                    child.child("time").setValue(timeInput.getText().toString());
+                }
+            }
+        });
+
+        //set on 'cancel' listener
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        //show dialog
+        builder.show();
+    }
+
+    private void AddNewProjectPerson() {
         //build dialog with request for name input
         AlertDialog.Builder builder = new AlertDialog.Builder(ProjectsActivity.this);
         builder.setTitle("Enter item info");
@@ -159,25 +402,23 @@ public class ProjectsActivity extends AppCompatActivity {
         ll.addView(input);
 
         final Spinner spinner = new Spinner(ProjectsActivity.this);
-        if(mViewPager.getCurrentItem() == Defines.PROJECTS_FRAGMENT) {
-            final TextView tv = new TextView(ProjectsActivity.this);
-            tv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            tv.setTextSize(20);
-            tv.setText("Type");
-            tv.setPadding(10, 0, 0, 0);
-            ll.addView(tv);
+        final TextView tv = new TextView(ProjectsActivity.this);
+        tv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        tv.setTextSize(20);
+        tv.setText("Type");
+        tv.setPadding(10, 0, 0, 0);
+        ll.addView(tv);
 
-            spinner.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120));
-            final ArrayList<String> list = new ArrayList<>();
-            list.add("Person");
-            list.add("Project");
-            final ArrayAdapter<String> adapter = new ArrayAdapter<String>(getApplicationContext(),
-                    android.R.layout.simple_spinner_item, list);
-            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
-            spinner.setAdapter(adapter);
-            adapter.notifyDataSetChanged();
-            ll.addView(spinner);
-        }
+        spinner.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120));
+        final ArrayList<String> list = new ArrayList<>();
+        list.add("Person");
+        list.add("Project");
+        final ArrayAdapter<String> adapter = new ArrayAdapter<String>(getApplicationContext(),
+                android.R.layout.simple_spinner_item, list);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        adapter.notifyDataSetChanged();
+        ll.addView(spinner);
 
         builder.setView(ll);
 
@@ -187,27 +428,18 @@ public class ProjectsActivity extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 String name = input.getText().toString();
                 DatabaseReference child = mRootRef;
-                switch (mViewPager.getCurrentItem())
-                {
-                    case Defines.PROJECTS_FRAGMENT:
-                        int i = spinner.getSelectedItemPosition();
-                        switch (spinner.getSelectedItemPosition())
-                        {
-                            case 0:
-                                child.child("people").child(name).child("Widgets").child("None").setValue(true);
-                                break;
-                            case 1:
-                                child.child("projects").child(name).child("status").setValue(true);
-                        }
+                switch (spinner.getSelectedItemPosition()) {
+                    case 0:
+                        child.child("people").child(name).child("Widgets").child("None").setValue(true);
                         break;
-                    case Defines.TASKS_FRAGMENT:
-                        child.child("tasks").child(name).child("status").setValue(false);
-                        break;
+                    case 1:
+                        child.child("projects").child(name).child("status").setValue(true);
                 }
+
             }
         });
 
-        //set on 'cancer' listener
+        //set on 'cancel' listener
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
@@ -264,7 +496,7 @@ public class ProjectsActivity extends AppCompatActivity {
                         searchView.setQuery("",false);
                         searchView.setIconified(true);
 
-                        HideAllNonMatches(null);
+                        HideItemsBySearchOptions(mSearchOptions.getSelectedItemPosition());
                     }
                 });
 
@@ -305,6 +537,7 @@ public class ProjectsActivity extends AppCompatActivity {
             }
         }
     }
+
     @Override
     public boolean onContextItemSelected(MenuItem item)
     {
@@ -404,6 +637,7 @@ public class ProjectsActivity extends AppCompatActivity {
         @Override
         public void onStart() {
             super.onStart();
+            mLinearLayout.removeAllViews();
             mAuth.addAuthStateListener(mAuthStateListener);
         }
 
@@ -496,6 +730,7 @@ public class ProjectsActivity extends AppCompatActivity {
                 @Override
                 public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                     mRootRef.child("tasks").child((String)cb.getTag()).child("status").setValue(b);
+                    ((ProjectsActivity)getActivity()).RefreshCurrentFragment();
                 }
             });
 
@@ -516,6 +751,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     break;
             }
 
+            iv.setTag(llt);
             iv.setPadding(10, 10, 0, 0);
             return iv;
         }
@@ -601,12 +837,14 @@ public class ProjectsActivity extends AppCompatActivity {
             dr.child("tasks").addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                    AddItem(dataSnapshot.getKey(), dataSnapshot.child("status").getValue(boolean.class));
+                    String name = dataSnapshot.getKey();
+                    boolean status = (boolean)dataSnapshot.child("status").getValue();
+                    AddItem(name, status);
                 }
 
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-                    ChangeCheckBoxStatus(dataSnapshot.getKey(), dataSnapshot.child("status").getValue(boolean.class));
+                    ChangeCheckBoxStatus(dataSnapshot.getKey(), (boolean)dataSnapshot.child("status").getValue());
                 }
 
                 @Override
