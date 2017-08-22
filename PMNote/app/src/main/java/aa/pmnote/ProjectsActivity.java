@@ -5,6 +5,7 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Color;
+import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
@@ -20,6 +21,7 @@ import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.Bundle;
 import android.text.InputType;
+import android.util.SparseArray;
 import android.view.ContextMenu;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -29,6 +31,8 @@ import android.view.View;
 import android.view.ViewGroup;
 
 import android.widget.ArrayAdapter;
+import android.widget.CheckBox;
+import android.widget.CompoundButton;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
@@ -45,10 +49,22 @@ import com.google.firebase.database.FirebaseDatabase;
 
 import java.util.ArrayList;
 
-public class ProjectsActivity extends AppCompatActivity {
+class Defines {
+    public enum LinearLayoutType {
+        PROJECT,
+        PERSON,
+        TASK
+    }
 
-    private final static int PROJECTS = 0;
-    private final static int TASKS = 1;
+    public final static int PROJECTS_FRAGMENT = 0;
+    public final static int TASKS_FRAGMENT = 1;
+
+
+    public final static int TEXT_VIEW_POSITION = 1;
+    public final static int ITEM_SIZE_IN_VIEWS = 2;
+}
+
+public class ProjectsActivity extends AppCompatActivity {
 
     /**
      * The {@link android.support.v4.view.PagerAdapter} that will provide
@@ -123,14 +139,6 @@ public class ProjectsActivity extends AppCompatActivity {
                 }
             }
         };
-
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                AddNewItem();
-            }
-        });
     }
 
     private void AddNewItem()
@@ -151,7 +159,7 @@ public class ProjectsActivity extends AppCompatActivity {
         ll.addView(input);
 
         final Spinner spinner = new Spinner(ProjectsActivity.this);
-        if(mViewPager.getCurrentItem() == PROJECTS) {
+        if(mViewPager.getCurrentItem() == Defines.PROJECTS_FRAGMENT) {
             final TextView tv = new TextView(ProjectsActivity.this);
             tv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
             tv.setTextSize(20);
@@ -181,7 +189,7 @@ public class ProjectsActivity extends AppCompatActivity {
                 DatabaseReference child = mRootRef;
                 switch (mViewPager.getCurrentItem())
                 {
-                    case PROJECTS:
+                    case Defines.PROJECTS_FRAGMENT:
                         int i = spinner.getSelectedItemPosition();
                         switch (spinner.getSelectedItemPosition())
                         {
@@ -192,8 +200,8 @@ public class ProjectsActivity extends AppCompatActivity {
                                 child.child("projects").child(name).child("ph").setValue(true);
                         }
                         break;
-                    case TASKS:
-                        child.child("tasks").child(name).child("ph").setValue(true);
+                    case Defines.TASKS_FRAGMENT:
+                        child.child("tasks").child(name).child("status").setValue(false);
                         break;
                 }
             }
@@ -226,11 +234,16 @@ public class ProjectsActivity extends AppCompatActivity {
     }
 
     @Override
+    protected void onRestart() {
+        ((LinearLayout)findViewById(R.id.myLinearLayout)).removeAllViews();
+        super.onRestart();
+    }
+
+    @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         //adds menu/menu_projects.xml here
         getMenuInflater().inflate(R.menu.menu_projects, menu);
-
 
         final SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -276,11 +289,11 @@ public class ProjectsActivity extends AppCompatActivity {
 
     private void HideAllNonMatches(String text)
     {
-        LinearLayout ll = (LinearLayout)findViewById(R.id.myLinearLayout);
+        LinearLayout ll = mSectionsPagerAdapter.getFragment(mViewPager.getCurrentItem()).GetLinearLayout();
         for(int i = 0; i < ll.getChildCount(); i+=2)
         {
-            String llText = ((TextView)((LinearLayout)ll.getChildAt(i)).getChildAt(1)).getText().toString();
-            if(text == null || llText.equals(text))
+            String llText = ((TextView)((LinearLayout)ll.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+            if(text == null || llText.contains(text))
             {
                 ll.getChildAt(i).setVisibility(View.VISIBLE);
                 ll.getChildAt(i+1).setVisibility(View.VISIBLE);
@@ -292,8 +305,6 @@ public class ProjectsActivity extends AppCompatActivity {
             }
         }
     }
-    private final static int PROJECT = 0;
-    private final static int PERSON = 1;
     @Override
     public boolean onContextItemSelected(MenuItem item)
     {
@@ -303,8 +314,21 @@ public class ProjectsActivity extends AppCompatActivity {
                 last_context_selected.callOnClick();
                 break;
             case 2:
-                String key = ((TextView)((LinearLayout)last_context_selected).getChildAt(1)).getText().toString();
-                mRootRef.child(((int)last_context_selected.getTag() == PROJECT ? "projects" : "people")).child(key).removeValue();
+                String key = ((TextView)((LinearLayout)last_context_selected).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                DatabaseReference child = null;
+                switch ((Defines.LinearLayoutType)last_context_selected.getTag())
+                {
+                    case PERSON:
+                        child = mRootRef.child("people");
+                        break;
+                    case PROJECT:
+                        child = mRootRef.child("projects");
+                        break;
+                    case TASK:
+                        child = mRootRef.child("tasks");
+                        break;
+                }
+                child.child(key).removeValue();
                 break;
         }
         return super.onContextItemSelected(item);
@@ -327,14 +351,17 @@ public class ProjectsActivity extends AppCompatActivity {
     public static class ActivityFragment extends Fragment {
 
         private static final String ARG_SECTION_NUMBER = "section_number";
-        private static final int PROJECTS = 1;
-        private static final int TASKS = 2;
 
         private LinearLayout mLinearLayout;
 
         private FirebaseAuth mAuth;
         private FirebaseAuth.AuthStateListener mAuthStateListener;
         private DatabaseReference mRootRef;
+
+        public LinearLayout GetLinearLayout()
+        {
+            return mLinearLayout;
+        }
 
         public ActivityFragment() {}
 
@@ -359,11 +386,11 @@ public class ProjectsActivity extends AppCompatActivity {
                     if(firebaseAuth.getCurrentUser() != null) {
                         String uid = firebaseAuth.getCurrentUser().getUid();
                         mRootRef = FirebaseDatabase.getInstance().getReference().child("users").child(uid);
-                        switch (getArguments().getInt(ARG_SECTION_NUMBER)) {
-                            case PROJECTS:
+                        switch (getArguments().getInt(ARG_SECTION_NUMBER) - 1) {
+                            case Defines.PROJECTS_FRAGMENT:
                                 SetUpProjectsPersonList(mRootRef);
                                 break;
-                            case TASKS:
+                            case Defines.TASKS_FRAGMENT:
                                 SetUpTaskList(mRootRef);
                                 break;
                         }
@@ -388,15 +415,9 @@ public class ProjectsActivity extends AppCompatActivity {
             }
         }
 
-        private enum LinearLayoutType
-        {
-            PROJECT,
-            PERSON
-        }
-
         private final static String INFO_TAG = "PERSON_NAME";
 
-        private LinearLayout linearLayoutFactory(String text, LinearLayoutType llt)
+        private LinearLayout linearLayoutFactory(String text, Defines.LinearLayoutType llt)
         {
             LinearLayout ll = new LinearLayout(getActivity());
             ll.setOrientation(LinearLayout.HORIZONTAL);
@@ -410,8 +431,9 @@ public class ProjectsActivity extends AppCompatActivity {
             ll.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Intent intent = new Intent(getActivity(), ((int)view.getTag() == PERSON ? ProfileView.class :ProfileView.class ));
-                    String extraInfo = ((TextView)((LinearLayout)view).getChildAt(1)).getText().toString();
+                    //TODO: set switch here
+                    Intent intent = new Intent(getActivity(), ((Defines.LinearLayoutType)view.getTag() == Defines.LinearLayoutType.PERSON ? ProfileView.class : ProfileView.class ));
+                    String extraInfo = ((TextView)((LinearLayout)view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
                     intent.putExtra(INFO_TAG, extraInfo);
                     startActivity(intent);
                 }
@@ -420,7 +442,6 @@ public class ProjectsActivity extends AppCompatActivity {
             ll.setOnLongClickListener(new View.OnLongClickListener() {
                 @Override
                 public boolean onLongClick(View view) {
-
                     registerForContextMenu(view);
                     getActivity().openContextMenu(view);
                     return true;
@@ -430,11 +451,71 @@ public class ProjectsActivity extends AppCompatActivity {
             return ll;
         }
 
-        private ImageView imageViewFactory(LinearLayoutType llt)
+        private LinearLayout linearLayoutFactory(String text, boolean checkBoxStatus)
+        {
+            LinearLayout ll = new LinearLayout(getActivity());
+            ll.setOrientation(LinearLayout.HORIZONTAL);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+            ll.setGravity(Gravity.CENTER);
+            ll.setLayoutParams(lp);
+
+            ll.addView(checkBoxFactory(text, checkBoxStatus));
+            ll.addView(textViewFactory(text));
+
+            ll.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    //TODO: set switch here
+                    Intent intent = new Intent(getActivity(), ((Defines.LinearLayoutType)view.getTag() == Defines.LinearLayoutType.PERSON ? ProfileView.class : ProfileView.class ));
+                    String extraInfo = ((TextView)((LinearLayout)view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                    intent.putExtra(INFO_TAG, extraInfo);
+                    startActivity(intent);
+                }
+            });
+
+            ll.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View view) {
+                    registerForContextMenu(view);
+                    getActivity().openContextMenu(view);
+                    return true;
+                }
+            });
+
+            return ll;
+        }
+
+        private CheckBox checkBoxFactory(String text, boolean checked)
+        {
+            final CheckBox cb = new CheckBox(getActivity());
+            cb.setLayoutParams(new ViewGroup.LayoutParams(150, 150));
+            cb.setText("");
+            cb.setTag(text);
+            cb.setChecked(checked);
+            cb.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                    mRootRef.child("tasks").child((String)cb.getTag()).child("status").setValue(b);
+                }
+            });
+
+            return cb;
+        }
+
+        private ImageView imageViewFactory(Defines.LinearLayoutType llt)
         {
             ImageView iv = new ImageView(getActivity());
             iv.setLayoutParams(new ViewGroup.LayoutParams(150, 150));
-            iv.setImageResource((llt == LinearLayoutType.PROJECT ? R.drawable.ic_project : R.drawable.ic_person));
+            switch(llt)
+            {
+                case PERSON:
+                    iv.setImageResource(R.drawable.ic_person);
+                    break;
+                case PROJECT:
+                    iv.setImageResource(R.drawable.ic_project);
+                    break;
+            }
+
             iv.setPadding(10, 10, 0, 0);
             return iv;
         }
@@ -458,15 +539,12 @@ public class ProjectsActivity extends AppCompatActivity {
             return hd;
         }
 
-        private final static int PROJECT = 0;
-        private final static int PERSON = 1;
-
         private void SetUpProjectsPersonList(DatabaseReference dr)
         {
             dr.child("projects").addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                    AddPersonOrProject(dataSnapshot.getKey(), LinearLayoutType.PROJECT);
+                    AddItem(dataSnapshot.getKey(), Defines.LinearLayoutType.PROJECT);
                 }
 
                 @Override
@@ -493,7 +571,7 @@ public class ProjectsActivity extends AppCompatActivity {
             dr.child("people").addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                    AddPersonOrProject(dataSnapshot.getKey(), LinearLayoutType.PERSON);
+                    AddItem(dataSnapshot.getKey(), Defines.LinearLayoutType.PERSON);
                 }
 
                 @Override
@@ -523,17 +601,17 @@ public class ProjectsActivity extends AppCompatActivity {
             dr.child("tasks").addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                    //TODO: on task add
+                    AddItem(dataSnapshot.getKey(), dataSnapshot.child("status").getValue(boolean.class));
                 }
 
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-
+                    ChangeCheckBoxStatus(dataSnapshot.getKey(), dataSnapshot.child("status").getValue(boolean.class));
                 }
 
                 @Override
                 public void onChildRemoved(DataSnapshot dataSnapshot) {
-                    //TODO on task remove
+                    RemovePersonOrProject(dataSnapshot.getKey());
                 }
 
                 @Override
@@ -548,10 +626,22 @@ public class ProjectsActivity extends AppCompatActivity {
             });
         }
 
-        private void AddPersonOrProject(String name, LinearLayoutType llt)
+        void ChangeCheckBoxStatus(String name, boolean newStatus)
+        {
+            int i = FindLinearLayoutByText(name);
+            ((CheckBox)((LinearLayout)mLinearLayout.getChildAt(i)).getChildAt(0)).setChecked(newStatus);
+        }
+
+        private void AddItem(String name, boolean checkBoxStatus)
+        {
+            LinearLayout ll =linearLayoutFactory(name, checkBoxStatus);
+            mLinearLayout.addView(ll);
+            mLinearLayout.addView(horizontalDividerFactory());
+        }
+
+        private void AddItem(String name, Defines.LinearLayoutType llt)
         {
             LinearLayout ll = linearLayoutFactory(name, llt);
-            ll.setTag((llt == LinearLayoutType.PERSON ? PERSON : PROJECT));
             mLinearLayout.addView(ll);
             mLinearLayout.addView(horizontalDividerFactory());
         }
@@ -559,17 +649,16 @@ public class ProjectsActivity extends AppCompatActivity {
         private void RemovePersonOrProject(String name)
         {
             int position = FindLinearLayoutByText(name);
-            mLinearLayout.removeView(mLinearLayout.getChildAt(position));
-            mLinearLayout.removeView(mLinearLayout.getChildAt(position));
+            mLinearLayout.removeViews(position, Defines.ITEM_SIZE_IN_VIEWS);
         }
 
         private int FindLinearLayoutByText(String text)
         {
-            int i;
             int childCount = mLinearLayout.getChildCount();
-            for(i = 0; i < childCount; i+=2)
+            int i;
+            for(i = 0; i < childCount; i += Defines.ITEM_SIZE_IN_VIEWS)
             {
-                String llText =((TextView)((LinearLayout)mLinearLayout.getChildAt(i)).getChildAt(1)).getText().toString();
+                String llText =((TextView)((LinearLayout)mLinearLayout.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
                 if(llText == text) {
                     break;
                 }
@@ -585,6 +674,7 @@ public class ProjectsActivity extends AppCompatActivity {
     public class SectionsPagerAdapter extends FragmentPagerAdapter {
 
         private final static int PAGE_COUNT = 2;
+        private SparseArray<ActivityFragment> mFragments = new SparseArray<>();
 
         public SectionsPagerAdapter(FragmentManager fm) {
             super(fm);
@@ -595,6 +685,24 @@ public class ProjectsActivity extends AppCompatActivity {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
             return ActivityFragment.newInstance(position + 1);
+        }
+
+        @Override
+        public Object instantiateItem(ViewGroup container, int position) {
+            ActivityFragment fragment = (ActivityFragment)super.instantiateItem(container, position);
+            mFragments.put(position, fragment);
+            return fragment;
+        }
+
+        @Override
+        public void destroyItem(ViewGroup container, int position, Object object) {
+            mFragments.remove(position);
+            super.destroyItem(container, position, object);
+        }
+
+        public ActivityFragment getFragment(int position)
+        {
+            return mFragments.get(position);
         }
 
         @Override
@@ -613,20 +721,6 @@ public class ProjectsActivity extends AppCompatActivity {
                     return "Tasks";
             }
             return null;
-        }
-    }
-
-    public class DetailOnPageChangeListener extends ViewPager.SimpleOnPageChangeListener {
-
-        private int currentPage;
-
-        @Override
-        public void onPageSelected(int position) {
-            currentPage = position;
-        }
-
-        public final int getCurrentPage() {
-            return currentPage;
         }
     }
 }
