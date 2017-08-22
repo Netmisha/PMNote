@@ -92,10 +92,10 @@
                     android:layout_weight="0.13" />
 
                 <TextView
-                    android:id="@+id/+380 12 345 67 89"
+                    android:id="@+id/number"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="TextView"
+                    android:text="+380 12 345 67 89"
                     android:textColor="@android:color/black"
                     android:textSize="25sp" />
 
