@@ -3,6 +3,7 @@ package aa.pmnote;
 import android.content.Intent;
 import android.graphics.Color;
 import android.os.Bundle;
+import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
@@ -83,12 +84,12 @@ public class ProfileView extends AppCompatActivity
                 {
                     String uid = firebaseAuth.getCurrentUser().getUid();
                     mRootRef = FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("people").child(mName);
+                    SetUpWidgetList();
                 }
             }
         };
 
 
-        SetUpWidgetList(mRootRef);
         SetProjects();
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
@@ -173,8 +174,8 @@ public class ProfileView extends AppCompatActivity
                     public void onClick(DialogInterface dialog, int which) {
                         if(!input.getText().toString().isEmpty())
                         {
-                            SetNote(input.getText().toString(), "");
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(NOTE);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Text").setValue("");
                         }
                          else
                         {
@@ -267,7 +268,6 @@ public class ProfileView extends AppCompatActivity
                     {
                         if(!input.getText().toString().isEmpty())
                         {
-                           SetCheckBox(input.getText().toString(), false);
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(CHECKBOX);
                             mRootRef.child("Widgets").child(input.getText().toString()).child("isChecked").setValue(false);
                         }
@@ -357,7 +357,6 @@ public class ProfileView extends AppCompatActivity
 
                         if(!input.getText().toString().isEmpty() && !max_input.getText().toString().isEmpty())
                         {
-                         SetSeekBar(input.getText().toString(), Integer.parseInt(max_input.getText().toString()), 0);
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(SLIDER);
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Max_Num").setValue(max_input.getText().toString());
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Cur_Num").setValue(0);
@@ -502,12 +501,10 @@ public class ProfileView extends AppCompatActivity
                         }//set up spinner
                         if( !input.getText().toString().isEmpty() && active_item!=0 )
                         {
-                           SetCombobox(input.getText().toString(), final_list, "");
-
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(COMBOBOX);
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Items_Num").setValue(active_item);
                             List items_list = new ArrayList<String>(Arrays.asList(final_list));
-                            mRootRef.child("Widgets").child(input.getText().toString()).child("Items").setValue(final_list);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Items").setValue(items_list);
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Chosen_One").setValue(final_list[0]);
                         }
                         else
@@ -591,29 +588,36 @@ public class ProfileView extends AppCompatActivity
     }
 
     //get widget list from database
-    private void SetUpWidgetList(DatabaseReference dr)
+    private void SetUpWidgetList()
     {
-            dr.child("Widgets").addChildEventListener(new ChildEventListener() {
+        mRootRef.child("Widgets").addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                 String widget_name = dataSnapshot.getKey();
-                int type = dataSnapshot.child("Type").getValue(Integer.class);
-                switch(type)
+
+                AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(ProfileView.this);
+                dlgAlert.setMessage(widget_name);
+                dlgAlert.setTitle("App Title");
+                dlgAlert.setPositiveButton("OK", null);
+                dlgAlert.setCancelable(true);
+                dlgAlert.create().show();
+                //int type = (int)dataSnapshot.child("Type").getValue();
+                switch(1)//(type)
                 {
                     case NOTE:
-                       SetNote(widget_name, dataSnapshot.child("Text").getValue(String.class) );
+                       //SetNote(widget_name, dataSnapshot.child("Text").getValue(String.class) );
                         break;
 
                     case CHECKBOX:
-                        SetCheckBox(widget_name, dataSnapshot.child("isChecked").getValue(Boolean.class));
+                       // SetCheckBox(widget_name, dataSnapshot.child("isChecked").getValue(Boolean.class));
                         break;
 
                     case SLIDER:
-                        SetSeekBar(widget_name, dataSnapshot.child("Max_Num").getValue(Integer.class), dataSnapshot.child("Cur_Num").getValue(Integer.class));
+                        //SetSeekBar(widget_name, dataSnapshot.child("Max_Num").getValue(Integer.class), dataSnapshot.child("Cur_Num").getValue(Integer.class));
                         break;
 
                     case COMBOBOX:
-                        SetCombobox(widget_name, dataSnapshot.child("Items").getValue(String[].class),dataSnapshot.child("Chosen_One").getValue(String.class));
+                       // SetCombobox(widget_name, dataSnapshot.child("Items").getValue(String[].class),dataSnapshot.child("Chosen_One").getValue(String.class));
                         break;
 
                     case SPINBOX:
@@ -642,32 +646,6 @@ public class ProfileView extends AppCompatActivity
             }
         });
 
-        dr.child("people").addChildEventListener(new ChildEventListener() {
-            @Override
-            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-               // AddItem(dataSnapshot.getKey(), Defines.LinearLayoutType.PERSON);
-            }
-
-            @Override
-            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-
-            }
-
-            @Override
-            public void onChildRemoved(DataSnapshot dataSnapshot) {
-               // RemovePersonOrProject(dataSnapshot.getKey());
-            }
-
-            @Override
-            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
-
-            }
-
-            @Override
-            public void onCancelled(DatabaseError databaseError) {
-
-            }
-        });
     }
 }
 
