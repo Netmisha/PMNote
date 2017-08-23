@@ -1141,7 +1141,6 @@ public class ProfileView extends AppCompatActivity
                 }
                 else if (key.compareTo("number") == 0 )
                 {
-
                     ((TextView) findViewById(R.id.number)).setText(dataSnapshot.getValue(String.class));
                 }
             }
