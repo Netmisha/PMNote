@@ -53,6 +53,7 @@ import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import java.lang.reflect.Array;
 import java.text.SimpleDateFormat;
@@ -61,19 +62,7 @@ import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Locale;
 
-class Defines {
-    public enum LinearLayoutType {
-        PROJECT,
-        PERSON,
-        TASK
-    }
-
-    public final static int PROJECTS_FRAGMENT = 0;
-    public final static int TASKS_FRAGMENT = 1;
-
-    public final static int TEXT_VIEW_POSITION = 1;
-    public final static int ITEM_SIZE_IN_VIEWS = 2;
-}
+import aa.pmnote.Defines;
 
 public class ProjectsActivity extends AppCompatActivity {
 
@@ -228,6 +217,8 @@ public class ProjectsActivity extends AppCompatActivity {
             }
         });
 
+        setTitle(mSectionsPagerAdapter.getPageTitle(mViewPager.getCurrentItem()));
+
         //who cares about depreciation anyway
         mViewPager.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
@@ -235,19 +226,11 @@ public class ProjectsActivity extends AppCompatActivity {
 
             @Override
             public void onPageSelected(int position) {
-                switch (position)
-                {
-                    case 0:
-                        setTitle("Projects and People");
-                        SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.PROJECT);
-                        break;
-                    case 1:
-                        setTitle("Tasks");
-                        SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.TASK);
-                        break;
-                }
-
+                setTitle(mSectionsPagerAdapter.getPageTitle(position));
+                SetArrayList(mCurrentSpinnerList,
+                        (position == Defines.PROJECTS_FRAGMENT ? Defines.LinearLayoutType.PROJECT : Defines.LinearLayoutType.TASK));
                 mArrayAdapter.notifyDataSetChanged();
+
                 int temp = mSearchOptions.getSelectedItemPosition();
                 mSearchOptions.setSelection(mSavedSpinnerPosition);
                 mSavedSpinnerPosition = temp;
@@ -256,8 +239,6 @@ public class ProjectsActivity extends AppCompatActivity {
             @Override
             public void onPageScrollStateChanged(int state) {}
         });
-
-        setTitle("Projects and People");
 
         mAuth = FirebaseAuth.getInstance();
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
@@ -283,17 +264,49 @@ public class ProjectsActivity extends AppCompatActivity {
                         AddNewProjectPerson();
                         break;
                     case Defines.TASKS_FRAGMENT:
-                        AddNewTask();
+                        AddOrEditTask();
                         break;
                 }
             }
         });
     }
 
-    private void AddNewTask() {
+    public void AddOrEditTask()
+    {
+        AddOrEditTask(null, null, null, null, false);
+    }
+
+    public void AddOrEditTask(final String name)
+    {
+        mRootRef.child("tasks").child(name).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                String date = null, time = null, descr = null;
+                boolean status = (boolean)dataSnapshot.child("status").getValue();
+                if(dataSnapshot.child("date").exists()) {
+                    date = dataSnapshot.child("date").getValue(String.class);
+                }
+                if(dataSnapshot.child("time").exists()) {
+                    time = dataSnapshot.child("time").getValue(String.class);
+                }
+                if(dataSnapshot.child("description").exists()) {
+                    descr = dataSnapshot.child("description").getValue(String.class);
+                }
+
+                AddOrEditTask(name, date, time, descr, status);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    public void AddOrEditTask(final String name, final String date, final String time, final String description, final boolean status) {
         //build dialog with request for name input
         AlertDialog.Builder builder = new AlertDialog.Builder(ProjectsActivity.this);
-        builder.setTitle("Enter item info");
+        builder.setTitle("Edit task");
 
         final LinearLayout ll = new LinearLayout(ProjectsActivity.this);
         ll.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
@@ -303,12 +316,16 @@ public class ProjectsActivity extends AppCompatActivity {
         final EditText nameInput = new EditText(ProjectsActivity.this);
         nameInput.setInputType(InputType.TYPE_CLASS_TEXT);
         nameInput.setHint("Name");
+        nameInput.setText(name != null ? name : "");
         ll.addView(nameInput);
 
         final EditText timeInput = new EditText(ProjectsActivity.this);
         timeInput.setKeyListener(null);
         timeInput.setHint("Expire Time");
-        timeInput.setVisibility(View.GONE);
+        timeInput.setText(time != null ? time : "");
+        if(date == null) {
+            timeInput.setVisibility(View.GONE);
+        }
         timeInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean b) {
@@ -329,6 +346,7 @@ public class ProjectsActivity extends AppCompatActivity {
         final EditText dateInput = new EditText(ProjectsActivity.this);
         dateInput.setKeyListener(null);
         dateInput.setHint("Expire Date");
+        dateInput.setText(date != null ? date : "");
         dateInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean b) {
@@ -352,9 +370,10 @@ public class ProjectsActivity extends AppCompatActivity {
         ll.addView(dateInput);
         ll.addView(timeInput);
 
-        final EditText desctiptionInput = new EditText(ProjectsActivity.this);
-        desctiptionInput.setHint("Description");
-        ll.addView(desctiptionInput);
+        final EditText descriptionInput = new EditText(ProjectsActivity.this);
+        descriptionInput.setHint("Description");
+        descriptionInput.setText(description != null ? description : "");
+        ll.addView(descriptionInput);
 
         builder.setView(ll);
 
@@ -362,12 +381,17 @@ public class ProjectsActivity extends AppCompatActivity {
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                String name = nameInput.getText().toString();
-                if(!name.isEmpty()) {
-                    DatabaseReference child = mRootRef.child("tasks").child(name);
-                    child.child("status").setValue(false);
+                String enteredName = nameInput.getText().toString();
+                if(!enteredName.isEmpty()) {
+                    DatabaseReference child = mRootRef.child("tasks");
+                    if(name != null && !enteredName.equals(name))
+                    {
+                        child.child(name).removeValue();
+                    }
+                    child = child.child(enteredName);
+                    child.child("status").setValue(status);
                     child.child("date").setValue(dateInput.getText().toString());
-                    child.child("description").setValue(desctiptionInput.getText().toString());
+                    child.child("description").setValue(descriptionInput.getText().toString());
                     child.child("time").setValue(timeInput.getText().toString());
                 }
             }
@@ -430,7 +454,7 @@ public class ProjectsActivity extends AppCompatActivity {
                 DatabaseReference child = mRootRef;
                 switch (spinner.getSelectedItemPosition()) {
                     case 0:
-                        child.child("people").child(name).child("Widgets").child("None").setValue(true);
+                        child.child("people").child(name).child("None").setValue(true);
                         break;
                     case 1:
                         child.child("projects").child(name).child("status").setValue(true);
@@ -575,7 +599,7 @@ public class ProjectsActivity extends AppCompatActivity {
     {
         last_context_selected = view;
         if(view instanceof LinearLayout) {
-            menu.setHeaderTitle("Whadda you do?");
+            menu.setHeaderTitle("Choose an action");
             menu.add(Menu.NONE, 1, Menu.NONE, "Open");
             menu.add(Menu.NONE, 2, Menu.NONE, "Delete");
         }
@@ -649,7 +673,7 @@ public class ProjectsActivity extends AppCompatActivity {
             }
         }
 
-        private final static String INFO_TAG = "PERSON_NAME";
+
 
         private LinearLayout linearLayoutFactory(String text, Defines.LinearLayoutType llt)
         {
@@ -668,7 +692,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     //TODO: set switch here
                     Intent intent = new Intent(getActivity(), ((Defines.LinearLayoutType)view.getTag() == Defines.LinearLayoutType.PERSON ? ProfileView.class : ProfileView.class ));
                     String extraInfo = ((TextView)((LinearLayout)view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-                    intent.putExtra(INFO_TAG, extraInfo);
+                    intent.putExtra(Defines.INFO_TAG, extraInfo);
                     startActivity(intent);
                 }
             });
@@ -699,11 +723,8 @@ public class ProjectsActivity extends AppCompatActivity {
             ll.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    //TODO: set switch here
-                    Intent intent = new Intent(getActivity(), ((Defines.LinearLayoutType)view.getTag() == Defines.LinearLayoutType.PERSON ? ProfileView.class : ProfileView.class ));
-                    String extraInfo = ((TextView)((LinearLayout)view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-                    intent.putExtra(INFO_TAG, extraInfo);
-                    startActivity(intent);
+                    String name = ((TextView)((LinearLayout)view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                    ((ProjectsActivity)getActivity()).AddOrEditTask(name);
                 }
             });
 
@@ -872,7 +893,7 @@ public class ProjectsActivity extends AppCompatActivity {
 
         private void AddItem(String name, boolean checkBoxStatus)
         {
-            LinearLayout ll =linearLayoutFactory(name, checkBoxStatus);
+            LinearLayout ll = linearLayoutFactory(name, checkBoxStatus);
             mLinearLayout.addView(ll);
             mLinearLayout.addView(horizontalDividerFactory());
         }
@@ -897,7 +918,7 @@ public class ProjectsActivity extends AppCompatActivity {
             for(i = 0; i < childCount; i += Defines.ITEM_SIZE_IN_VIEWS)
             {
                 String llText =((TextView)((LinearLayout)mLinearLayout.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-                if(llText == text) {
+                if(llText.equals(text)) {
                     break;
                 }
             }
@@ -954,7 +975,7 @@ public class ProjectsActivity extends AppCompatActivity {
         public CharSequence getPageTitle(int position) {
             switch (position) {
                 case 0:
-                    return "Projects";
+                    return "Projects and People";
                 case 1:
                     return "Tasks";
             }
