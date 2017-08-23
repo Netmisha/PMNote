@@ -69,7 +69,8 @@
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_weight="3"
-                        android:text="TextView"
+                        android:text="HardWorker"
+                        android:textColor="@android:color/black"
                         android:textSize="20sp" />
                 </LinearLayout>
 
@@ -97,8 +98,9 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_weight="3"
-                        android:text="TextView"
-                        android:textSize="20sp" />
+                        android:textColor="@android:color/black"
+                        android:textSize="20sp"
+                        />
                 </LinearLayout>
 
                 <Space
@@ -125,7 +127,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_weight="3"
-                        android:text="TextView"
+                        android:textColor="@android:color/black"
                         android:textSize="20sp" />
                 </LinearLayout>
 
@@ -143,7 +145,6 @@
                     android:id="@+id/number"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="+380 12 345 67 89"
                     android:textColor="@android:color/black"
                     android:textSize="25sp" />
 

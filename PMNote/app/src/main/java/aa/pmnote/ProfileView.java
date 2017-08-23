@@ -9,8 +9,10 @@ import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
+import android.text.Html;
 import android.text.InputType;
 import android.text.TextWatcher;
+import android.text.method.LinkMovementMethod;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -35,12 +37,15 @@ import android.widget.LinearLayout;
 
 import 	android.widget.Spinner;
 
+import com.firebase.client.Firebase;
+import com.firebase.client.FirebaseError;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
 
 import aa.pmnote.CustomAdapter;import aa.pmnote.R;
 
@@ -48,6 +53,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 import static java.lang.StrictMath.toIntExact;
 
@@ -56,10 +63,12 @@ public class ProfileView extends AppCompatActivity
     private final static String NAME_TAG = "PERSON_NAME";
     private String mName;
     public View for_alertdialog;
+    public Boolean changingDir;
 
     private FirebaseAuth mAuth;
     private FirebaseAuth.AuthStateListener mAuthStateListener;
     private DatabaseReference mRootRef;
+    public String uid;
     public static Boolean isThereAnyProjects;
 
     //how widgets will be saved on firebase
@@ -82,7 +91,10 @@ public class ProfileView extends AppCompatActivity
         ll.addView(horizontalDividerFactory());
         //vars
         slider_arch = new Vector<TextView>();
+        changingDir = false;
+        //set up name
         mName = getIntent().getStringExtra(NAME_TAG);
+        ((TextView) findViewById(R.id.name)).setText(mName);
 
         mAuth = FirebaseAuth.getInstance();
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
@@ -93,7 +105,7 @@ public class ProfileView extends AppCompatActivity
                 }
                 else
                 {
-                    String uid = firebaseAuth.getCurrentUser().getUid();
+                    uid = firebaseAuth.getCurrentUser().getUid();
                     mRootRef = FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("people").child(mName);
                     SetUpWidgetList();
                 }
@@ -228,15 +240,21 @@ public class ProfileView extends AppCompatActivity
         name_input.setText(mName);
         final EditText mail_input = new EditText(ProfileView.this);
         mail_input.setText( ((TextView)findViewById(R.id.mail)).getText().toString() );
+        mail_input.setInputType(InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS | InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS | InputType.TYPE_TEXT_VARIATION_EMAIL_SUBJECT);
         final EditText skype_input = new EditText(ProfileView.this);
         skype_input.setText( ((TextView)findViewById(R.id.skype)).getText().toString() );
+        final EditText number_input = new EditText(ProfileView.this);
+        number_input.setText( ((TextView)findViewById(R.id.number)).getText().toString() );
+        number_input.setInputType(InputType.TYPE_CLASS_PHONE);
 
-        TextView enter_n = new TextView(ProfileView.this);
+        final TextView enter_n = new TextView(ProfileView.this);
         enter_n.setText("Enter name:");
         TextView enter_m = new TextView(ProfileView.this);
         enter_m.setText("Enter e-mail:");
         TextView enter_s = new TextView(ProfileView.this);
         enter_s.setText("Enter skype:");
+        TextView enter_number = new TextView(ProfileView.this);
+        enter_number.setText("Enter phone number:");
 
         LinearLayout info_set_layout = new LinearLayout(ProfileView.this);
         info_set_layout.setOrientation(LinearLayout.VERTICAL);
@@ -246,6 +264,8 @@ public class ProfileView extends AppCompatActivity
         info_set_layout.addView(mail_input);
         info_set_layout.addView(enter_s);
         info_set_layout.addView(skype_input);
+        info_set_layout.addView(enter_number);
+        info_set_layout.addView(number_input);
 
         LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -262,13 +282,40 @@ public class ProfileView extends AppCompatActivity
                     {
                         if(!name_input.getText().toString().isEmpty())
                         {
-                            mRootRef.child("Widgets").child(name_input.getText().toString()).child("Type").setValue(CHECKBOX);
-                            mRootRef.child("Widgets").child(name_input.getText().toString()).child("isChecked").setValue(false);
-                            SetCheckBox(name_input.getText().toString(), false);
+                            String mNewName =  name_input.getText().toString();
+                            //if we changing the name --> we changing the brunch
+                            if( mNewName.compareTo(mName) != 0 ) {
+
+                                mName = mNewName;
+                                ((TextView) findViewById(R.id.name)).setText(mName);
+
+                                changingDir = true;
+
+                                moveFirebaseRecord(mRootRef, FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("people").child(mName));
+                            }
+                            ((TextView) findViewById(R.id.skype)).setText(skype_input.getText().toString());
+                            mRootRef.child("Info").child("skype").setValue(skype_input.getText().toString());
+
+
+                            String email = mail_input.getText().toString();
+                            if(isEmailValid(email))
+                            {
+                                String hyper_email = "<a href=\""+email+"\">" + email+"</a>";
+                                ((TextView) findViewById(R.id.mail)).setText(Html.fromHtml(hyper_email));
+                                ((TextView) findViewById(R.id.mail)).setMovementMethod(LinkMovementMethod.getInstance());
+                                mRootRef.child("Info").child("mail").setValue(hyper_email);
+                            }
+                            else
+                                {
+                                    Toast.makeText(ProfileView.this, "Not valid e-mail!",
+                                            Toast.LENGTH_LONG).show();
+                                }
+                            ((TextView) findViewById(R.id.number)).setText(number_input.getText().toString());
+                            mRootRef.child("Info").child("number").setValue(number_input.getText().toString());
                         }
                         else
                         {
-                            Toast.makeText(getApplicationContext(), "One of dialog fields is empty", Toast.LENGTH_SHORT).show();
+                            Toast.makeText(getApplicationContext(), "Name is empty", Toast.LENGTH_SHORT).show();
                         }
                     }
                 });
@@ -283,6 +330,52 @@ public class ProfileView extends AppCompatActivity
                 });
 
         alertDialog.show();
+
+    }
+
+    public boolean isEmailValid(String email)
+    {
+        String regExpn =
+                "^(([\\w-]+\\.)+[\\w-]+|([a-zA-Z]{1}|[\\w-]{2,}))@"
+                        +"((([0-1]?[0-9]{1,2}|25[0-5]|2[0-4][0-9])\\.([0-1]?"
+                        +"[0-9]{1,2}|25[0-5]|2[0-4][0-9])\\."
+                        +"([0-1]?[0-9]{1,2}|25[0-5]|2[0-4][0-9])\\.([0-1]?"
+                        +"[0-9]{1,2}|25[0-5]|2[0-4][0-9])){1}|"
+                        +"([a-zA-Z]+[\\w-]+\\.)+[a-zA-Z]{2,4})$";
+
+        CharSequence inputStr = email;
+
+        Pattern pattern = Pattern.compile(regExpn,Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(inputStr);
+
+        if(matcher.matches())
+            return true;
+        else
+            return false;
+    }
+
+    public void moveFirebaseRecord(DatabaseReference fromPath, final DatabaseReference toPath)
+    {
+        fromPath.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+               toPath.setValue(dataSnapshot.getValue(), new DatabaseReference.CompletionListener() {
+                   @Override
+                   public void onComplete(DatabaseError databaseError, DatabaseReference databaseReference) {
+
+                       if(changingDir) {
+                           mRootRef.removeValue();
+                           finish();
+                       }
+                   }
+               });
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
 
     }
 
@@ -1028,10 +1121,51 @@ public class ProfileView extends AppCompatActivity
             @Override
             public void onCancelled(DatabaseError databaseError) {
             }
-
             }
         );
+        mRootRef.child("Info").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
 
+                String key = dataSnapshot.getKey();
+
+                if (key.compareTo("mail") == 0 )
+                {
+                    ((TextView) findViewById(R.id.mail)).setText(Html.fromHtml(dataSnapshot.getValue(String.class)));
+                    ((TextView) findViewById(R.id.mail)).setMovementMethod(LinkMovementMethod.getInstance());
+                }
+                else if (key.compareTo("skype") == 0 )
+                {
+
+                    ((TextView) findViewById(R.id.skype)).setText(dataSnapshot.getValue(String.class));
+                }
+                else if (key.compareTo("number") == 0 )
+                {
+
+                    ((TextView) findViewById(R.id.number)).setText(dataSnapshot.getValue(String.class));
+                }
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
     }
 }
 
