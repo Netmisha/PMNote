@@ -17,7 +17,9 @@ import android.content.DialogInterface;
 import android.app.AlertDialog;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
+import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.Space;
 import android.widget.Toast;
 
 import android.widget.SeekBar;
@@ -51,10 +53,12 @@ public class ProfileView extends AppCompatActivity
 {
     private final static String NAME_TAG = "PERSON_NAME";
     private String mName;
+    public View for_alertdialog;
 
     private FirebaseAuth mAuth;
     private FirebaseAuth.AuthStateListener mAuthStateListener;
     private DatabaseReference mRootRef;
+    public static Boolean isThereAnyProjects;
 
     //how widgets will be saved on firebase
     private final static int NOTE = 1;
@@ -71,6 +75,9 @@ public class ProfileView extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
+        //adding
+        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+        ll.addView(horizontalDividerFactory());
         //vars
         slider_arch = new Vector<TextView>();
         mName = getIntent().getStringExtra(NAME_TAG);
@@ -91,8 +98,6 @@ public class ProfileView extends AppCompatActivity
             }
         };
 
-
-        SetProjects();
 
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
@@ -149,6 +154,14 @@ public class ProfileView extends AppCompatActivity
         }
     }
 
+    private View horizontalDividerFactory()
+    {
+        View hd = new View(ProfileView.this);
+        hd.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
+        hd.setBackgroundColor(Color.GRAY);
+        return hd;
+    }
+
     private void addNote()
     {
         AlertDialog.Builder alertDialog = new AlertDialog.Builder(ProfileView.this);
@@ -159,6 +172,7 @@ public class ProfileView extends AppCompatActivity
         TextView enter_s = new TextView(ProfileView.this);
 
         enter_s.setText("Enter note name:");
+        enter_s.setTextSize(15);
         LinearLayout slider_set_layout = new LinearLayout(ProfileView.this);
         slider_set_layout.setOrientation(LinearLayout.VERTICAL);
         slider_set_layout.addView(enter_s);
@@ -178,6 +192,7 @@ public class ProfileView extends AppCompatActivity
                         {
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(NOTE);
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Text").setValue("");
+                            SetNote(input.getText().toString(), "");
                         }
                          else
                         {
@@ -222,6 +237,8 @@ public class ProfileView extends AppCompatActivity
         });
         TextView note_name = new TextView(ProfileView.this);
         note_name.setText(n_name);
+        note_name.setTextSize(20);
+        note_name.setTextColor(Color.BLACK);
         if(inner_text.isEmpty())
             et.setHint("Enter your note here... ");
         else
@@ -230,6 +247,51 @@ public class ProfileView extends AppCompatActivity
         note_layout.setOrientation(LinearLayout.VERTICAL);
         note_layout.addView(note_name);
         note_layout.addView(et);
+        note_layout.addView(horizontalDividerFactory());
+        Space space = new Space(ProfileView.this );
+        note_layout.addView(space);
+
+        note_layout.setOnLongClickListener(new View.OnLongClickListener() {
+        @Override
+        public boolean onLongClick(View v)
+        {
+            AlertDialog.Builder ad;
+            String title = "Warning !";
+            String message = "Do you really want to delete this widget?";
+            String button1String = "Yes";
+            String button2String = "Cencel";
+
+            ad = new AlertDialog.Builder(ProfileView.this);
+            ad.setTitle(title);  // заголовок
+            ad.setMessage(message); // сообщение
+            ad.setPositiveButton(button1String, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int arg1) {
+                    LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+                    LinearLayout dead_layout = ((LinearLayout) for_alertdialog);
+                    ll.removeView(dead_layout);
+                    mRootRef.child("Widgets").child(n_name).removeValue();
+                }
+            });
+            ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int arg1) {
+                    Toast.makeText(ProfileView.this, "Cenceled",
+                            Toast.LENGTH_LONG).show();
+                }
+            });
+            ad.setCancelable(true);
+            ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                public void onCancel(DialogInterface dialog) {
+                    Toast.makeText(ProfileView.this, "Cenceled",
+                            Toast.LENGTH_LONG).show();
+                }}
+            );
+
+            for_alertdialog = v;
+            ad.show();
+
+            return true;
+        }});
+
 
 
         LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
@@ -272,6 +334,7 @@ public class ProfileView extends AppCompatActivity
                         {
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(CHECKBOX);
                             mRootRef.child("Widgets").child(input.getText().toString()).child("isChecked").setValue(false);
+                            SetCheckBox(input.getText().toString(), false);
                         }
                          else
                         {
@@ -311,13 +374,61 @@ public class ProfileView extends AppCompatActivity
             }
         });
         cb.setText(input);
+        cb.setTextSize(20);
+        cb.setTextColor(Color.BLACK);
         cb.setChecked(checked);
+
+        final LinearLayout cb_layout = new LinearLayout(ProfileView.this);
+        cb_layout.setOrientation(LinearLayout.VERTICAL);
+        cb_layout.addView(cb);
+        cb_layout.addView(horizontalDividerFactory());
+        Space space = new Space(ProfileView.this );
+        cb_layout.addView(space);
+        cb.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v)
+            {
+                AlertDialog.Builder ad;
+                String title = "Warning !";
+                String message = "Do you really want to delete this widget?";
+                String button1String = "Yes";
+                String button2String = "Cencel";
+
+                ad = new AlertDialog.Builder(ProfileView.this);
+                ad.setTitle(title);  // заголовок
+                ad.setMessage(message); // сообщение
+                ad.setPositiveButton(button1String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+                        ll.removeView(cb_layout);
+                        mRootRef.child("Widgets").child(input).removeValue();
+                    }
+                });
+                ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        Toast.makeText(ProfileView.this, "Cenceled",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+                ad.setCancelable(true);
+                ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    public void onCancel(DialogInterface dialog) {
+                        Toast.makeText(ProfileView.this, "Cenceled",
+                                Toast.LENGTH_LONG).show();
+                    }}
+                );
+
+                ad.show();
+
+                return true;
+            }});
+
 
         LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT);
-        ll.addView(cb, lp);
+        ll.addView(cb_layout, lp);
     }
 
 
@@ -362,6 +473,7 @@ public class ProfileView extends AppCompatActivity
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(SLIDER);
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Max_Num").setValue(Integer.parseInt(max_input.getText().toString()));
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Cur_Num").setValue(0);
+                            SetSeekBar(input.getText().toString(), Integer.parseInt(max_input.getText().toString()), 0);
 
                         }
                          else
@@ -395,6 +507,9 @@ public class ProfileView extends AppCompatActivity
         final String UserText = name;
         slider_arch.get(slider_arch.size() - 1).setText(UserText + ": " + sbar.getProgress() + "/" + sbar.getMax());
         final TextView slider_txt = slider_arch.get(slider_arch.size() - 1);
+        slider_txt.setTextSize(20);
+        slider_txt.setTextColor(Color.BLACK);
+
         sbar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
             int progress = 0;
 
@@ -424,6 +539,51 @@ public class ProfileView extends AppCompatActivity
         slider_layout.setOrientation(LinearLayout.VERTICAL);
         slider_layout.addView(slider_arch.get(slider_arch.size() - 1));
         slider_layout.addView(sbar);
+        slider_layout.addView(horizontalDividerFactory());
+        Space space = new Space(ProfileView.this );
+        slider_layout.addView(space);
+
+        slider_layout.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v)
+            {
+                AlertDialog.Builder ad;
+                String title = "Warning !";
+                String message = "Do you really want to delete this widget?";
+                String button1String = "Yes";
+                String button2String = "Cencel";
+
+                ad = new AlertDialog.Builder(ProfileView.this);
+                ad.setTitle(title);  // заголовок
+                ad.setMessage(message); // сообщение
+                ad.setPositiveButton(button1String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+                        LinearLayout dead_layout = ((LinearLayout) for_alertdialog);
+                        ll.removeView(dead_layout);
+                        mRootRef.child("Widgets").child(name).removeValue();
+                    }
+                });
+                ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        Toast.makeText(ProfileView.this, "Cenceled",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+                ad.setCancelable(true);
+                ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    public void onCancel(DialogInterface dialog) {
+                        Toast.makeText(ProfileView.this, "Cenceled",
+                                Toast.LENGTH_LONG).show();
+                    }}
+                );
+
+                for_alertdialog = v;
+                ad.show();
+
+                return true;
+            }});
+
 
         LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
@@ -508,6 +668,7 @@ public class ProfileView extends AppCompatActivity
                             List items_list = new ArrayList<String>(Arrays.asList(final_list));
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Items").setValue(items_list);
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Chosen_One").setValue(final_list[0]);
+                            SetCombobox(input.getText().toString(),final_list, final_list[0] );
                         }
                         else
                         {
@@ -529,10 +690,15 @@ public class ProfileView extends AppCompatActivity
     {
         TextView s_name = new TextView(ProfileView.this);
         s_name.setText(name);
+        s_name.setTextSize(20);
+        s_name.setTextColor(Color.BLACK);
         Spinner spinner = new Spinner(ProfileView.this);
+
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onNothingSelected(AdapterView<?> parent) {
+                ((TextView) parent.getChildAt(0)).setTextColor(Color.BLACK);
+                ((TextView) parent.getChildAt(0)).setTextSize(20);
             }
 
             @Override
@@ -553,41 +719,61 @@ public class ProfileView extends AppCompatActivity
         s_layout.addView(s_name);
         s_layout.addView(spinner);
 
+        LinearLayout s2_layout = new LinearLayout(ProfileView.this);
+        s2_layout.setOrientation(LinearLayout.VERTICAL);
+        s2_layout.addView(s_layout);
+        s2_layout.addView(horizontalDividerFactory());
+        Space space = new Space(ProfileView.this );
+        s2_layout.addView(space);
+
+        s2_layout.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v)
+            {
+                AlertDialog.Builder ad;
+                String title = "Warning !";
+                String message = "Do you really want to delete this widget?";
+                String button1String = "Yes";
+                String button2String = "Cencel";
+
+                ad = new AlertDialog.Builder(ProfileView.this);
+                ad.setTitle(title);  // заголовок
+                ad.setMessage(message); // сообщение
+                ad.setPositiveButton(button1String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+                        LinearLayout dead_layout = ((LinearLayout) for_alertdialog);
+                        ll.removeView(dead_layout);
+                        mRootRef.child("Widgets").child(name).removeValue();
+                    }
+                });
+                ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        Toast.makeText(ProfileView.this, "Cenceled",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+                ad.setCancelable(true);
+                ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    public void onCancel(DialogInterface dialog) {
+                        Toast.makeText(ProfileView.this, "Cenceled",
+                                Toast.LENGTH_LONG).show();
+                    }}
+                    );
+
+                    for_alertdialog = v;
+                        ad.show();
+
+                        return true;
+                }});
 
         LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.WRAP_CONTENT); //height enough
-        ll.addView(s_layout, lp);
+        ll.addView(s2_layout, lp);
     }
 
-
-    void SetProjects()
-    {
-        if (true)
-        {
-            TextView no_proj = new TextView(ProfileView.this);
-            no_proj.setText("None");
-            LinearLayout ll = (LinearLayout) findViewById(R.id.projects_layout);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                    LinearLayout.LayoutParams.MATCH_PARENT,
-                    LinearLayout.LayoutParams.WRAP_CONTENT);
-            ll.addView(no_proj, lp);
-            ll.addView(horizontalDividerFactory());
-        }
-        else
-        {
-            //TODO
-        }
-    }
-
-    private View horizontalDividerFactory()
-    {
-        View hd = new View(ProfileView.this);
-        hd.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
-        hd.setBackgroundColor(Color.GRAY);
-        return hd;
-    }
 
     //get widget list from database
     private void SetUpWidgetList()
@@ -603,48 +789,52 @@ public class ProfileView extends AppCompatActivity
                 if(dataSnapshot.child("Type").exists())
                 {
                     type = (long)dataSnapshot.child("Type").getValue();
-                    AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(ProfileView.this);
-                    dlgAlert.setMessage(String.valueOf(type));
-                    dlgAlert.setTitle("App Title");
-                    dlgAlert.setPositiveButton("OK", null);
-                    dlgAlert.setCancelable(true);
-                    dlgAlert.create().show();
+
                 }
 
                 int i_type = type.intValue();
                 switch(i_type)
                 {
                     case NOTE:
-                       SetNote(widget_name, dataSnapshot.child("Text").getValue(String.class) );
+                        if(dataSnapshot.child("Text").exists()) {
+                            type = (long)dataSnapshot.child("Type").getValue();
+
+                            SetNote(widget_name, dataSnapshot.child("Text").getValue(String.class));
+                        }
                         break;
 
                     case CHECKBOX:
-                        SetCheckBox(widget_name, dataSnapshot.child("isChecked").getValue(Boolean.class));
+                        if(dataSnapshot.child("isChecked").exists()) {
+                            SetCheckBox(widget_name, dataSnapshot.child("isChecked").getValue(Boolean.class));
+                        }
                         break;
 
                     case SLIDER:
-                        Long max_num = 0L;
-                        max_num = (long)dataSnapshot.child("Max_Num").getValue();
-                        Long cur_num =  0L;
-                        cur_num = (long)dataSnapshot.child("Cur_Num").getValue();
-                        int i_max_num = max_num.intValue();
-                        int i_cur_num = cur_num.intValue();
+                        if(dataSnapshot.child("Max_Num").exists()) {
+                            Long max_num = 0L;
+                            max_num = (long) dataSnapshot.child("Max_Num").getValue();
+                            Long cur_num = 0L;
+                            cur_num = (long) dataSnapshot.child("Cur_Num").getValue();
+                            int i_max_num = max_num.intValue();
+                            int i_cur_num = cur_num.intValue();
 
-                       SetSeekBar(widget_name, i_max_num , i_cur_num) ;
+                            SetSeekBar(widget_name, i_max_num, i_cur_num);
+                        }
                         break;
 
                     case COMBOBOX:
-                        Long items_num = 0L;
-                        items_num =  (long)dataSnapshot.child("Items_Num").getValue();
-                        int i_items_num = items_num.intValue();
-                        String[] list = new String[i_items_num];
+                        if(dataSnapshot.child("Items_Num").exists()) {
+                            Long items_num = 0L;
+                            items_num = (long) dataSnapshot.child("Items_Num").getValue();
+                            int i_items_num = items_num.intValue();
+                            String[] list = new String[i_items_num];
 
-                        for( Integer i = 0; i<i_items_num; i++)
-                        {
-                            list[i] = dataSnapshot.child("Items").child(i.toString()).getValue(String.class);
+                            for (Integer i = 0; i < i_items_num; i++) {
+                                list[i] = dataSnapshot.child("Items").child(i.toString()).getValue(String.class);
+                            }
+
+                            SetCombobox(widget_name, list, dataSnapshot.child("Chosen_One").getValue(String.class));
                         }
-
-                        SetCombobox(widget_name, list, dataSnapshot.child("Chosen_One").getValue(String.class));
                         break;
 
                     case SPINBOX:
@@ -672,6 +862,43 @@ public class ProfileView extends AppCompatActivity
 
             }
         });
+
+        mRootRef.child("Projects").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+
+                TextView proj = new TextView(ProfileView.this);
+                proj.setText(dataSnapshot.getKey());
+                proj.setTextColor(Color.BLACK);
+                proj.setTextSize(20);
+                LinearLayout ll = (LinearLayout) findViewById(R.id.projects_layout);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+                ll.addView(proj, lp);
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+
+            }
+        );
 
     }
 }
