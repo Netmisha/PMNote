@@ -9,4 +9,5 @@
         <item>Show Projects</item>
         <item>Show People</item>
     </string-array>
+    <string name="title_activity_projects_view">ProjectsView</string>
 </resources>

@@ -61,6 +61,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Locale;
+import java.util.Map;
 
 import aa.pmnote.Defines;
 
@@ -91,26 +92,8 @@ public class ProjectsActivity extends AppCompatActivity {
     private ArrayList<String> mCurrentSpinnerList = new ArrayList<>();
     private int mSavedSpinnerPosition = 0;
 
-    public void RefreshCurrentFragment()
-    {
+    public void RefreshCurrentFragment() {
         HideItemsBySearchOptions(mSearchOptions.getSelectedItemPosition());
-    }
-
-    private void SetArrayList(ArrayList<String> list, Defines.LinearLayoutType llt)
-    {
-        list.clear();
-        if(llt == Defines.LinearLayoutType.TASK)
-        {
-            list.add("Show All");
-            list.add("Show Open");
-            list.add("Show Completed");
-        }
-        else
-        {
-            list.add("Show All");
-            list.add("Show Projects");
-            list.add("Show People");
-        }
     }
 
     private void HideItemsBySearchOptions(int search_option)
@@ -200,7 +183,7 @@ public class ProjectsActivity extends AppCompatActivity {
         mViewPager = (ViewPager) findViewById(R.id.container);
         mViewPager.setAdapter(mSectionsPagerAdapter);
 
-        SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.PROJECT);
+        Defines.SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.PROJECT);
         mSearchOptions = (Spinner)findViewById(R.id.searchOptions);
         mArrayAdapter = new ArrayAdapter<String>(this, R.layout.spinner_item, mCurrentSpinnerList);
         mSearchOptions.setAdapter(mArrayAdapter);
@@ -227,7 +210,7 @@ public class ProjectsActivity extends AppCompatActivity {
             @Override
             public void onPageSelected(int position) {
                 setTitle(mSectionsPagerAdapter.getPageTitle(position));
-                SetArrayList(mCurrentSpinnerList,
+                Defines.SetArrayList(mCurrentSpinnerList,
                         (position == Defines.PROJECTS_FRAGMENT ? Defines.LinearLayoutType.PROJECT : Defines.LinearLayoutType.TASK));
                 mArrayAdapter.notifyDataSetChanged();
 
@@ -671,134 +654,21 @@ public class ProjectsActivity extends AppCompatActivity {
             if (mAuthStateListener != null) {
                 mAuth.removeAuthStateListener(mAuthStateListener);
             }
+            if(peopleCEV != null)
+                mRootRef.child("people").removeEventListener(peopleCEV);
+            if(projectsCEV != null)
+                mRootRef.child("projects").removeEventListener(projectsCEV);
+            if(tasksCEV != null)
+                mRootRef.child("tasks").removeEventListener(tasksCEV);
         }
 
-
-
-        private LinearLayout linearLayoutFactory(String text, Defines.LinearLayoutType llt)
-        {
-            LinearLayout ll = new LinearLayout(getActivity());
-            ll.setOrientation(LinearLayout.HORIZONTAL);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
-            ll.setGravity(Gravity.CENTER);
-            ll.setLayoutParams(lp);
-
-            ll.addView(imageViewFactory(llt));
-            ll.addView(textViewFactory(text));
-
-            ll.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    //TODO: set switch here
-                    Intent intent = new Intent(getActivity(), ((Defines.LinearLayoutType)view.getTag() == Defines.LinearLayoutType.PERSON ? ProfileView.class : ProfileView.class ));
-                    String extraInfo = ((TextView)((LinearLayout)view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-                    intent.putExtra(Defines.INFO_TAG, extraInfo);
-                    startActivity(intent);
-                }
-            });
-
-            ll.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View view) {
-                    registerForContextMenu(view);
-                    getActivity().openContextMenu(view);
-                    return true;
-                }
-            });
-
-            return ll;
-        }
-
-        private LinearLayout linearLayoutFactory(String text, boolean checkBoxStatus)
-        {
-            LinearLayout ll = new LinearLayout(getActivity());
-            ll.setOrientation(LinearLayout.HORIZONTAL);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
-            ll.setGravity(Gravity.CENTER);
-            ll.setLayoutParams(lp);
-
-            ll.addView(checkBoxFactory(text, checkBoxStatus));
-            ll.addView(textViewFactory(text));
-
-            ll.setOnClickListener(new View.OnClickListener() {
-                @Override
-                public void onClick(View view) {
-                    String name = ((TextView)((LinearLayout)view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-                    ((ProjectsActivity)getActivity()).AddOrEditTask(name);
-                }
-            });
-
-            ll.setOnLongClickListener(new View.OnLongClickListener() {
-                @Override
-                public boolean onLongClick(View view) {
-                    registerForContextMenu(view);
-                    getActivity().openContextMenu(view);
-                    return true;
-                }
-            });
-
-            return ll;
-        }
-
-        private CheckBox checkBoxFactory(String text, boolean checked)
-        {
-            final CheckBox cb = new CheckBox(getActivity());
-            cb.setLayoutParams(new ViewGroup.LayoutParams(150, 150));
-            cb.setText("");
-            cb.setTag(text);
-            cb.setChecked(checked);
-            cb.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                @Override
-                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                    mRootRef.child("tasks").child((String)cb.getTag()).child("status").setValue(b);
-                    ((ProjectsActivity)getActivity()).RefreshCurrentFragment();
-                }
-            });
-
-            return cb;
-        }
-
-        private ImageView imageViewFactory(Defines.LinearLayoutType llt)
-        {
-            ImageView iv = new ImageView(getActivity());
-            iv.setLayoutParams(new ViewGroup.LayoutParams(150, 150));
-            switch(llt)
-            {
-                case PERSON:
-                    iv.setImageResource(R.drawable.ic_person);
-                    break;
-                case PROJECT:
-                    iv.setImageResource(R.drawable.ic_project);
-                    break;
-            }
-
-            iv.setTag(llt);
-            iv.setPadding(10, 10, 0, 0);
-            return iv;
-        }
-
-        private TextView textViewFactory(String text)
-        {
-            TextView tv = new TextView(getActivity());
-            tv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-            tv.setGravity(Gravity.RIGHT);
-            tv.setTextSize(20);
-            tv.setText(text);
-
-            return tv;
-        }
-
-        private View horizontalDividerFactory()
-        {
-            View hd = new View(getActivity());
-            hd.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
-            hd.setBackgroundColor(Color.GRAY);
-            return hd;
-        }
+        private ChildEventListener tasksCEV = null;
+        private ChildEventListener peopleCEV = null;
+        private ChildEventListener projectsCEV = null;
 
         private void SetUpProjectsPersonList(DatabaseReference dr)
         {
-            dr.child("projects").addChildEventListener(new ChildEventListener() {
+            projectsCEV = dr.child("projects").addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     AddItem(dataSnapshot.getKey(), Defines.LinearLayoutType.PROJECT);
@@ -825,7 +695,7 @@ public class ProjectsActivity extends AppCompatActivity {
                 }
             });
 
-            dr.child("people").addChildEventListener(new ChildEventListener() {
+            peopleCEV = dr.child("people").addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     AddItem(dataSnapshot.getKey(), Defines.LinearLayoutType.PERSON);
@@ -855,7 +725,7 @@ public class ProjectsActivity extends AppCompatActivity {
 
         private void SetUpTaskList(DatabaseReference dr)
         {
-            dr.child("tasks").addChildEventListener(new ChildEventListener() {
+            tasksCEV = dr.child("tasks").addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     String name = dataSnapshot.getKey();
@@ -893,16 +763,63 @@ public class ProjectsActivity extends AppCompatActivity {
 
         private void AddItem(String name, boolean checkBoxStatus)
         {
-            LinearLayout ll = linearLayoutFactory(name, checkBoxStatus);
+            final LinearLayout ll = ViewFactory.linearLayoutFactory(getActivity(), name, checkBoxStatus);
+
+            ll.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    String name = ((TextView)((LinearLayout)view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                    ((ProjectsActivity)getActivity()).AddOrEditTask(name);
+                }
+            });
+
+            ll.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View view) {
+                    registerForContextMenu(view);
+                    getActivity().openContextMenu(view);
+                    return true;
+                }
+            });
+
+
+            ((CheckBox)ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                @Override
+                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                    mRootRef.child("tasks").child((String)((CheckBox)ll.getChildAt(1)).getTag()).child("status").setValue(b);
+                    ((ProjectsActivity)getActivity()).RefreshCurrentFragment();
+                }
+            });
+
             mLinearLayout.addView(ll);
-            mLinearLayout.addView(horizontalDividerFactory());
+            mLinearLayout.addView(ViewFactory.horizontalDividerFactory(getActivity()));
         }
 
         private void AddItem(String name, Defines.LinearLayoutType llt)
         {
-            LinearLayout ll = linearLayoutFactory(name, llt);
+            LinearLayout ll = ViewFactory.linearLayoutFactory(getActivity(), name, llt);
+
+            ll.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View view) {
+                    Intent intent = new Intent(getActivity(), ((Defines.LinearLayoutType)view.getTag() == Defines.LinearLayoutType.PERSON ? ProfileView.class : ProjectsView.class ));
+                    String extraInfo = ((TextView)((LinearLayout)view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                    intent.putExtra(Defines.INFO_TAG, extraInfo);
+                    startActivity(intent);
+                }
+            });
+
+            ll.setOnLongClickListener(new View.OnLongClickListener() {
+                @Override
+                public boolean onLongClick(View view) {
+                    registerForContextMenu(view);
+                    getActivity().openContextMenu(view);
+                    return true;
+                }
+            });
+
             mLinearLayout.addView(ll);
-            mLinearLayout.addView(horizontalDividerFactory());
+            mLinearLayout.addView(ViewFactory.horizontalDividerFactory(getActivity()));
         }
 
         private void RemovePersonOrProject(String name)
