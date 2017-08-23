@@ -250,19 +250,21 @@ public class ProfileView extends AppCompatActivity
         LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT);
-        input.setLayoutParams(set_lp);
-        alertDialog.setView(slider_set_layout);
+        name_input.setLayoutParams(set_lp);
+        mail_input.setLayoutParams(set_lp);
+        skype_input.setLayoutParams(set_lp);
+        alertDialog.setView(info_set_layout);
 
         alertDialog.setPositiveButton("SET",
                 new DialogInterface.OnClickListener()
                 {
                     public void onClick(DialogInterface dialog, int which)
                     {
-                        if(!input.getText().toString().isEmpty())
+                        if(!name_input.getText().toString().isEmpty())
                         {
-                            mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(CHECKBOX);
-                            mRootRef.child("Widgets").child(input.getText().toString()).child("isChecked").setValue(false);
-                            SetCheckBox(input.getText().toString(), false);
+                            mRootRef.child("Widgets").child(name_input.getText().toString()).child("Type").setValue(CHECKBOX);
+                            mRootRef.child("Widgets").child(name_input.getText().toString()).child("isChecked").setValue(false);
+                            SetCheckBox(name_input.getText().toString(), false);
                         }
                         else
                         {
