@@ -11,6 +11,8 @@ import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.InputType;
 import android.text.TextWatcher;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 
 import android.content.DialogInterface;
@@ -152,6 +154,134 @@ public class ProfileView extends AppCompatActivity
         if (mAuthStateListener != null) {
             mAuth.removeAuthStateListener(mAuthStateListener);
         }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.profile_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.set_img) {
+
+            return true;
+        }
+
+        if (id == R.id.set_info) {
+            OpenSetInfoDialog();
+            return true;
+        }
+
+        if (id == R.id.del_usr) {
+            AlertDialog.Builder ad;
+            String title = "Warning !";
+            String message = "Do you really want to delete this profile?";
+            String button1String = "Yes";
+            String button2String = "Cencel";
+
+            ad = new AlertDialog.Builder(ProfileView.this);
+            ad.setTitle(title);  // заголовок
+            ad.setMessage(message); // сообщение
+            ad.setPositiveButton(button1String, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int arg1) {
+                    mRootRef.removeValue();
+                    finish();
+                }
+            });
+            ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int arg1) {
+                    Toast.makeText(ProfileView.this, "Cenceled",
+                            Toast.LENGTH_LONG).show();
+                }
+            });
+            ad.setCancelable(true);
+            ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                public void onCancel(DialogInterface dialog) {
+                    Toast.makeText(ProfileView.this, "Cenceled",
+                            Toast.LENGTH_LONG).show();
+                }}
+            );
+
+            ad.show();
+
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void OpenSetInfoDialog()
+    {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(ProfileView.this);
+        alertDialog.setTitle("Profile Info");
+        alertDialog.setMessage("Enter Person Info: ");
+
+        final EditText name_input = new EditText(ProfileView.this);
+        name_input.setText(mName);
+        final EditText mail_input = new EditText(ProfileView.this);
+        mail_input.setText( ((TextView)findViewById(R.id.mail)).getText().toString() );
+        final EditText skype_input = new EditText(ProfileView.this);
+        skype_input.setText( ((TextView)findViewById(R.id.skype)).getText().toString() );
+
+        TextView enter_n = new TextView(ProfileView.this);
+        enter_n.setText("Enter name:");
+        TextView enter_m = new TextView(ProfileView.this);
+        enter_m.setText("Enter e-mail:");
+        TextView enter_s = new TextView(ProfileView.this);
+        enter_s.setText("Enter skype:");
+
+        LinearLayout info_set_layout = new LinearLayout(ProfileView.this);
+        info_set_layout.setOrientation(LinearLayout.VERTICAL);
+        info_set_layout.addView(enter_n);
+        info_set_layout.addView(name_input);
+        info_set_layout.addView(enter_m);
+        info_set_layout.addView(mail_input);
+        info_set_layout.addView(enter_s);
+        info_set_layout.addView(skype_input);
+
+        LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        input.setLayoutParams(set_lp);
+        alertDialog.setView(slider_set_layout);
+
+        alertDialog.setPositiveButton("SET",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        if(!input.getText().toString().isEmpty())
+                        {
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(CHECKBOX);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("isChecked").setValue(false);
+                            SetCheckBox(input.getText().toString(), false);
+                        }
+                        else
+                        {
+                            Toast.makeText(getApplicationContext(), "One of dialog fields is empty", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
+        alertDialog.setNegativeButton("NO",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        dialog.cancel();
+                    }
+                });
+
+        alertDialog.show();
+
     }
 
     private View horizontalDividerFactory()
