@@ -372,24 +372,36 @@ public class ProjectsView extends AppCompatActivity {
     @Override
     public boolean onContextItemSelected(MenuItem item)
     {
+        String key = ((TextView)((LinearLayout)last_context_selected).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();;
+        DatabaseReference child = null;
         switch(item.getItemId())
         {
             case 1:
                 last_context_selected.callOnClick();
                 break;
             case 2:
-                String key = ((TextView)((LinearLayout)last_context_selected).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-                DatabaseReference child = null;
                 switch ((Defines.LinearLayoutType)last_context_selected.getTag())
                 {
                     case PERSON:
-                        child = mRootRef.child("people");
-                        break;
-                    case PROJECT:
-                        child = mRootRef.child("projects");
+                        mRootRef.child("people").child(key).removeValue();
+                        mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("people").child(key).child("projects").child(mProjectName).removeValue();
                         break;
                     case TASK:
-                        child = mRootRef.child("tasks");
+                        mRootRef.child("tasks").child(key).removeValue();
+                        mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("tasks").child(key).child("projects").child(mProjectName).removeValue();
+                        break;
+                }
+                break;
+            case 3:
+                switch ((Defines.LinearLayoutType)last_context_selected.getTag())
+                {
+                    case PERSON:
+                        mRootRef.child("people").child(key).removeValue();
+                        child = mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("people");
+                        break;
+                    case TASK:
+                        mRootRef.child("users").child(key).removeValue();
+                        child = mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("tasks");
                         break;
                 }
                 child.child(key).removeValue();
@@ -408,7 +420,8 @@ public class ProjectsView extends AppCompatActivity {
         if(view instanceof LinearLayout) {
             menu.setHeaderTitle("Choose an action");
             menu.add(Menu.NONE, 1, Menu.NONE, "Open");
-            menu.add(Menu.NONE, 2, Menu.NONE, "Delete");
+            menu.add(Menu.NONE, 2, Menu.NONE, "Remove from project");
+            menu.add(Menu.NONE, 3, Menu.NONE, "Delete");
         }
     }
 
