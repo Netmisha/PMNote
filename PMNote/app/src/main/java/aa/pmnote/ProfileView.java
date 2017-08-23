@@ -45,6 +45,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Vector;
 
+import static java.lang.StrictMath.toIntExact;
+
 public class ProfileView extends AppCompatActivity
 {
     private final static String NAME_TAG = "PERSON_NAME";
@@ -358,7 +360,7 @@ public class ProfileView extends AppCompatActivity
                         if(!input.getText().toString().isEmpty() && !max_input.getText().toString().isEmpty())
                         {
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(SLIDER);
-                            mRootRef.child("Widgets").child(input.getText().toString()).child("Max_Num").setValue(max_input.getText().toString());
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Max_Num").setValue(Integer.parseInt(max_input.getText().toString()));
                             mRootRef.child("Widgets").child(input.getText().toString()).child("Cur_Num").setValue(0);
 
                         }
@@ -595,29 +597,54 @@ public class ProfileView extends AppCompatActivity
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                 String widget_name = dataSnapshot.getKey();
 
-                AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(ProfileView.this);
-                dlgAlert.setMessage(widget_name);
-                dlgAlert.setTitle("App Title");
-                dlgAlert.setPositiveButton("OK", null);
-                dlgAlert.setCancelable(true);
-                dlgAlert.create().show();
-                //int type = (int)dataSnapshot.child("Type").getValue();
-                switch(1)//(type)
+
+
+                Long type=0L;
+                if(dataSnapshot.child("Type").exists())
+                {
+                    type = (long)dataSnapshot.child("Type").getValue();
+                    AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(ProfileView.this);
+                    dlgAlert.setMessage(String.valueOf(type));
+                    dlgAlert.setTitle("App Title");
+                    dlgAlert.setPositiveButton("OK", null);
+                    dlgAlert.setCancelable(true);
+                    dlgAlert.create().show();
+                }
+
+                int i_type = type.intValue();
+                switch(i_type)
                 {
                     case NOTE:
-                       //SetNote(widget_name, dataSnapshot.child("Text").getValue(String.class) );
+                       SetNote(widget_name, dataSnapshot.child("Text").getValue(String.class) );
                         break;
 
                     case CHECKBOX:
-                       // SetCheckBox(widget_name, dataSnapshot.child("isChecked").getValue(Boolean.class));
+                        SetCheckBox(widget_name, dataSnapshot.child("isChecked").getValue(Boolean.class));
                         break;
 
                     case SLIDER:
-                        //SetSeekBar(widget_name, dataSnapshot.child("Max_Num").getValue(Integer.class), dataSnapshot.child("Cur_Num").getValue(Integer.class));
+                        Long max_num = 0L;
+                        max_num = (long)dataSnapshot.child("Max_Num").getValue();
+                        Long cur_num =  0L;
+                        cur_num = (long)dataSnapshot.child("Cur_Num").getValue();
+                        int i_max_num = max_num.intValue();
+                        int i_cur_num = cur_num.intValue();
+
+                       SetSeekBar(widget_name, i_max_num , i_cur_num) ;
                         break;
 
                     case COMBOBOX:
-                       // SetCombobox(widget_name, dataSnapshot.child("Items").getValue(String[].class),dataSnapshot.child("Chosen_One").getValue(String.class));
+                        Long items_num = 0L;
+                        items_num =  (long)dataSnapshot.child("Items_Num").getValue();
+                        int i_items_num = items_num.intValue();
+                        String[] list = new String[i_items_num];
+
+                        for( Integer i = 0; i<i_items_num; i++)
+                        {
+                            list[i] = dataSnapshot.child("Items").child(i.toString()).getValue(String.class);
+                        }
+
+                        SetCombobox(widget_name, list, dataSnapshot.child("Chosen_One").getValue(String.class));
                         break;
 
                     case SPINBOX:
