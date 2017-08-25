@@ -441,11 +441,55 @@ public class ProjectsView extends AppCompatActivity {
                 AddPerson();
                 return true;
             case R.id.action_addtask:
-                //TODO: add task here
+                AddTask();
                 return true;
         }
 
         return super.onOptionsItemSelected(item);
+    }
+
+    private void AddTask()
+    {
+        mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("tasks").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                ArrayList<String> nonAddedUsers = new ArrayList<String>();
+                for(DataSnapshot dr : dataSnapshot.getChildren())
+                {
+                    if(!dr.child("projects").child(mProjectName).exists())
+                    {
+                        nonAddedUsers.add(dr.getKey());
+                    }
+                }
+
+                ListView lv = new ListView(ProjectsView.this);
+                ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(ProjectsView.this, android.R.layout.simple_list_item_1, nonAddedUsers);
+                lv.setAdapter(arrayAdapter);
+
+                final AlertDialog.Builder builder = new AlertDialog.Builder(ProjectsView.this);
+                builder.setTitle("Choose task to add");
+                builder.setView(lv);
+
+                final AlertDialog ad = builder.create();
+
+                lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                    @Override
+                    public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                        String taskToAdd = ((TextView)view).getText().toString();
+                        mRootRef.child("tasks").child(taskToAdd).setValue(true);
+                        mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("people").child(taskToAdd).child("projects").child(mProjectName).setValue(true);
+                        ad.cancel();
+                    }
+                });
+
+                ad.show();
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
     }
 
     private void AddPerson()

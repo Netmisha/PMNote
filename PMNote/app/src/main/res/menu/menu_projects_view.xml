@@ -5,7 +5,7 @@
     <item
     android:id="@+id/action_addperson"
     android:orderInCategory="101"
-    android:title="Add person" />
+    android:title="Add existing person" />
     <item
         android:id="@+id/action_signout"
         android:orderInCategory="101"
