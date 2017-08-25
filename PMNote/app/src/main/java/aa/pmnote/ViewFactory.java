@@ -12,6 +12,8 @@ import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.TextView;
 
+import org.w3c.dom.Text;
+
 /**
  * Created by anton.gorielikov on 8/23/2017.
  */
@@ -51,7 +53,7 @@ public class ViewFactory {
     static public CheckBox checkBoxFactory(Context context, String text, boolean checked)
     {
         final CheckBox cb = new CheckBox(context);
-        cb.setLayoutParams(new ViewGroup.LayoutParams(150, 150));
+        cb.setLayoutParams(new ViewGroup.LayoutParams(120, 120));
         cb.setText("");
         cb.setTag(text);
         cb.setChecked(checked);
@@ -62,7 +64,7 @@ public class ViewFactory {
     static public ImageView imageViewFactory(Context context, Defines.LinearLayoutType llt)
     {
         ImageView iv = new ImageView(context);
-        iv.setLayoutParams(new ViewGroup.LayoutParams(150, 150));
+        iv.setLayoutParams(new ViewGroup.LayoutParams(120, 120));
         switch(llt)
         {
             case PERSON:
@@ -80,11 +82,18 @@ public class ViewFactory {
 
     static public TextView textViewFactory(Context context, String text)
     {
+        return textViewFactory(context, text, null);
+    }
+
+    static public TextView textViewFactory(Context context, String text, View.OnClickListener onClickListener)
+    {
         TextView tv = new TextView(context);
         tv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         tv.setGravity(Gravity.RIGHT);
         tv.setTextSize(20);
         tv.setText(text);
+        if(onClickListener != null)
+            tv.setOnClickListener(onClickListener);
 
         return tv;
     }

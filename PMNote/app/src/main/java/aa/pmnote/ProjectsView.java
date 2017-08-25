@@ -128,7 +128,7 @@ public class ProjectsView extends AppCompatActivity {
                 else
                 {
                     String uid = firebaseAuth.getCurrentUser().getUid();
-                    mRootRef = FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("projects").child(mProjectName);
+                    mRootRef = FirebaseDatabase.getInstance().getReference().child("Users").child(uid).child("Projects").child(mProjectName);
                 }
             }
         };
@@ -175,11 +175,11 @@ public class ProjectsView extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 String name = input.getText().toString();
                 DatabaseReference child = mRootRef;
-                child.child("people").child(name).setValue(true);
+                child.child("People").child(name).setValue(true);
 
                 child = child.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("people").child(name);
                 child.child("None").setValue(true);
-                child.child("projects").child(mProjectName).setValue(true);
+                child.child("Projects").child(mProjectName).setValue(true);
             }
         });
 
@@ -202,19 +202,19 @@ public class ProjectsView extends AppCompatActivity {
 
     public void AddOrEditTask(final String name)
     {
-        mRootRef.child("tasks").child(name).addListenerForSingleValueEvent(new ValueEventListener() {
+        mRootRef.child("Tasks").child(name).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 String date = null, time = null, descr = null;
-                boolean status = (boolean)dataSnapshot.child("status").getValue();
-                if(dataSnapshot.child("date").exists()) {
-                    date = dataSnapshot.child("date").getValue(String.class);
+                boolean status = (boolean)dataSnapshot.child("Status").getValue();
+                if(dataSnapshot.child("Date").exists()) {
+                    date = dataSnapshot.child("Date").getValue(String.class);
                 }
-                if(dataSnapshot.child("time").exists()) {
-                    time = dataSnapshot.child("time").getValue(String.class);
+                if(dataSnapshot.child("Time").exists()) {
+                    time = dataSnapshot.child("Time").getValue(String.class);
                 }
-                if(dataSnapshot.child("description").exists()) {
-                    descr = dataSnapshot.child("description").getValue(String.class);
+                if(dataSnapshot.child("Description").exists()) {
+                    descr = dataSnapshot.child("Description").getValue(String.class);
                 }
 
                 AddOrEditTask(name, date, time, descr, status);
@@ -309,7 +309,7 @@ public class ProjectsView extends AppCompatActivity {
                 if(!enteredName.isEmpty()) {
                     DatabaseReference child = mRootRef;
                     if (name != null && !enteredName.equals(name)) {
-                        child.child("tasks").child(name).removeValue();
+                        child.child("Tasks").child(name).removeValue();
 
                         child = mRootRef.getParent().getParent().child("tasks");
                         child.child(name).removeValue();
@@ -318,12 +318,12 @@ public class ProjectsView extends AppCompatActivity {
                         child = child.getParent().getParent().child("tasks").child(enteredName);
                     }
 
-                    child.child("status").setValue(status);
-                    child.child("date").setValue(dateInput.getText().toString());
-                    child.child("description").setValue(descriptionInput.getText().toString());
-                    child.child("time").setValue(timeInput.getText().toString());
+                    child.child("Status").setValue(status);
+                    child.child("Date").setValue(dateInput.getText().toString());
+                    child.child("Description").setValue(descriptionInput.getText().toString());
+                    child.child("Time").setValue(timeInput.getText().toString());
 
-                    mRootRef.child("tasks").child(enteredName).setValue(true);
+                    mRootRef.child("Tasks").child(enteredName).setValue(true);
                 }
             }
         });
@@ -383,12 +383,12 @@ public class ProjectsView extends AppCompatActivity {
                 switch ((Defines.LinearLayoutType)last_context_selected.getTag())
                 {
                     case PERSON:
-                        mRootRef.child("people").child(key).removeValue();
-                        mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("people").child(key).child("projects").child(mProjectName).removeValue();
+                        mRootRef.child("People").child(key).removeValue();
+                        mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(key).child("Projects").child(mProjectName).removeValue();
                         break;
                     case TASK:
-                        mRootRef.child("tasks").child(key).removeValue();
-                        mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("tasks").child(key).child("projects").child(mProjectName).removeValue();
+                        mRootRef.child("Tasks").child(key).removeValue();
+                        mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks").child(key).child("Projects").child(mProjectName).removeValue();
                         break;
                 }
                 break;
@@ -396,12 +396,12 @@ public class ProjectsView extends AppCompatActivity {
                 switch ((Defines.LinearLayoutType)last_context_selected.getTag())
                 {
                     case PERSON:
-                        mRootRef.child("people").child(key).removeValue();
-                        child = mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("people");
+                        mRootRef.child("People").child(key).removeValue();
+                        child = mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People");
                         break;
                     case TASK:
                         mRootRef.child("users").child(key).removeValue();
-                        child = mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("tasks");
+                        child = mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks");
                         break;
                 }
                 child.child(key).removeValue();
@@ -450,13 +450,13 @@ public class ProjectsView extends AppCompatActivity {
 
     private void AddTask()
     {
-        mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("tasks").addListenerForSingleValueEvent(new ValueEventListener() {
+        mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 ArrayList<String> nonAddedUsers = new ArrayList<String>();
                 for(DataSnapshot dr : dataSnapshot.getChildren())
                 {
-                    if(!dr.child("projects").child(mProjectName).exists())
+                    if(!dr.child("Projects").child(mProjectName).exists())
                     {
                         nonAddedUsers.add(dr.getKey());
                     }
@@ -476,8 +476,8 @@ public class ProjectsView extends AppCompatActivity {
                     @Override
                     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                         String taskToAdd = ((TextView)view).getText().toString();
-                        mRootRef.child("tasks").child(taskToAdd).setValue(true);
-                        mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("people").child(taskToAdd).child("projects").child(mProjectName).setValue(true);
+                        mRootRef.child("Tasks").child(taskToAdd).setValue(true);
+                        mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(taskToAdd).child("Projects").child(mProjectName).setValue(true);
                         ad.cancel();
                     }
                 });
@@ -680,18 +680,26 @@ public class ProjectsView extends AppCompatActivity {
         private ChildEventListener tasksCEV = null;
         private ChildEventListener peopleCEV = null;
 
+        private CompoundButton.OnCheckedChangeListener ccl = new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                String taskName = (String)compoundButton.getTag();
+                mRoot.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks").child(taskName).child("Status").setValue(b);
+            }
+        };
+
         private void SetUpTasksListener()
         {
             if(getArguments().getInt(ARG_SECTION_NUMBER) - 1 == Defines.PROJECT_TASKS_FRAGMENT) {
-                tasksCEV = mRoot.child("tasks").addChildEventListener(new ChildEventListener() {
+                tasksCEV = mRoot.child("Tasks").addChildEventListener(new ChildEventListener() {
                     @Override
                     public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                         final String taskName = dataSnapshot.getKey();
-                        mRoot.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("tasks")
+                        mRoot.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks")
                                 .child(taskName).addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(DataSnapshot dataSnapshot) {
-                                boolean taskStatus = (boolean) dataSnapshot.child("status").getValue();
+                                boolean taskStatus = (boolean) dataSnapshot.child("Status").getValue();
                                 final LinearLayout ll = ViewFactory.linearLayoutFactory(getActivity(), taskName, taskStatus);
 
                                 ll.setOnClickListener(new View.OnClickListener() {
@@ -715,8 +723,8 @@ public class ProjectsView extends AppCompatActivity {
                                 ((CheckBox) ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                                     @Override
                                     public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                                        mRoot.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("tasks")
-                                                .child((String) ((CheckBox) ll.getChildAt(1)).getTag()).child("status").setValue(b);
+                                        mRoot.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks")
+                                                .child((String) ((CheckBox) ll.getChildAt(1)).getTag()).child("Status").setValue(b);
                                         ((ProjectsActivity) getActivity()).RefreshCurrentFragment();
                                     }
                                 });
@@ -755,7 +763,7 @@ public class ProjectsView extends AppCompatActivity {
             }
             else
             {
-                peopleCEV = mRoot.child("people").addChildEventListener(new ChildEventListener() {
+                peopleCEV = mRoot.child("People").addChildEventListener(new ChildEventListener() {
                     @Override
                     public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                         final String personName = dataSnapshot.getKey();
@@ -822,9 +830,9 @@ public class ProjectsView extends AppCompatActivity {
                 mAuth.removeAuthStateListener(mAuthStateListener);
             }
             if(peopleCEV != null)
-                mRoot.child("people").removeEventListener(peopleCEV);
+                mRoot.child("People").removeEventListener(peopleCEV);
             if(tasksCEV != null)
-                mRoot.child("tasks").removeEventListener(tasksCEV);
+                mRoot.child("Tasks").removeEventListener(tasksCEV);
         }
     }
 
