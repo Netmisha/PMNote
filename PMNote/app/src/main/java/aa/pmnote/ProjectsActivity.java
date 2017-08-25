@@ -60,6 +60,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
+import java.util.Date;
 import java.util.Locale;
 import java.util.Map;
 
@@ -340,7 +341,7 @@ public class ProjectsActivity extends AppCompatActivity {
                         public void onDateSet(DatePicker datePicker, int year, int month, int day) {
                             Calendar date = Calendar.getInstance();
                             date.set(year, month, day);
-                            SimpleDateFormat sdf = new SimpleDateFormat("dd-MM-yyyy", Locale.ENGLISH);
+                            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.ENGLISH);
                             dateInput.setText(sdf.format(date.getTime()));
                             timeInput.setVisibility(View.VISIBLE);
                         }
@@ -593,6 +594,10 @@ public class ProjectsActivity extends AppCompatActivity {
         private static final String ARG_SECTION_NUMBER = "section_number";
 
         private LinearLayout mLinearLayout;
+        private LinearLayout mTodayTasks = null;
+        private LinearLayout mWeekTasks = null;
+        private LinearLayout mMonthTasks = null;
+        private LinearLayout mOtherTasks = null;
 
         private FirebaseAuth mAuth;
         private FirebaseAuth.AuthStateListener mAuthStateListener;
@@ -631,6 +636,11 @@ public class ProjectsActivity extends AppCompatActivity {
                                 SetUpProjectsPersonList(mRootRef);
                                 break;
                             case Defines.TASKS_FRAGMENT:
+                                mLinearLayout.addView(mTodayTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Today"));
+                                mLinearLayout.addView(mWeekTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "This Week"));
+                                mLinearLayout.addView(mMonthTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "This Month"));
+                                mLinearLayout.addView(mOtherTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Other Tasks"));
+
                                 SetUpTaskList(mRootRef);
                                 break;
                         }
@@ -730,7 +740,8 @@ public class ProjectsActivity extends AppCompatActivity {
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     String name = dataSnapshot.getKey();
                     boolean status = (boolean)dataSnapshot.child("Status").getValue();
-                    AddItem(name, status);
+                    Defines.TaskType tt = Defines.TaskType.OTHER;
+                    AddItem(name, status, tt);
                 }
 
                 @Override
@@ -761,7 +772,7 @@ public class ProjectsActivity extends AppCompatActivity {
             ((CheckBox)((LinearLayout)mLinearLayout.getChildAt(i)).getChildAt(0)).setChecked(newStatus);
         }
 
-        private void AddItem(String name, boolean checkBoxStatus)
+        private void AddItem(String name, boolean checkBoxStatus, Defines.TaskType tt)
         {
             final LinearLayout ll = ViewFactory.linearLayoutFactory(getActivity(), name, checkBoxStatus);
 
@@ -786,7 +797,7 @@ public class ProjectsActivity extends AppCompatActivity {
             ((CheckBox)ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                    String name = (String)((CheckBox)ll.getChildAt(1)).getTag();
+                    String name = (String)((CheckBox)ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).getTag();
                     mRootRef.child("Tasks").child(name).child("Status").setValue(b);
                     ((ProjectsActivity)getActivity()).RefreshCurrentFragment();
                 }

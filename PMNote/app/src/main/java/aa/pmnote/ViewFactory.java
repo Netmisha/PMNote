@@ -100,9 +100,36 @@ public class ViewFactory {
 
     static public View horizontalDividerFactory(Context context)
     {
+        return horizontalDividerFactory(context, Color.GRAY);
+    }
+
+    static public View horizontalDividerFactory(Context context, int color)
+    {
         View hd = new View(context);
         hd.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
-        hd.setBackgroundColor(Color.GRAY);
+        hd.setBackgroundColor(color);
         return hd;
+    }
+
+    static public LinearLayout titledLinearLayoutFactory(Context context, String text)
+    {
+        LinearLayout ll = new LinearLayout(context);
+        ll.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+        ll.setGravity(Gravity.CENTER);
+        ll.setLayoutParams(lp);
+        ll.setVisibility(View.GONE);
+
+        TextView tv = new TextView(context);
+        tv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120));
+        tv.setGravity(Gravity.LEFT);
+        tv.setTextSize(24);
+        tv.setText(text);
+        tv.setVisibility(View.VISIBLE);
+
+        ll.addView(tv);
+        ll.addView(horizontalDividerFactory(context, Color.BLACK));
+
+        return ll;
     }
 }

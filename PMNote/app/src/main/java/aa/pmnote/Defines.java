@@ -13,6 +13,14 @@ public class Defines {
         TASK
     }
 
+    public enum TaskType
+    {
+        TODAY,
+        WEEK,
+        MONTH,
+        OTHER
+    }
+
     public final static int PROJECTS_FRAGMENT = 0;
     public final static int TASKS_FRAGMENT = 1;
 

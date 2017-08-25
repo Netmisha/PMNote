@@ -494,13 +494,13 @@ public class ProjectsView extends AppCompatActivity {
 
     private void AddPerson()
     {
-        mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("people").addListenerForSingleValueEvent(new ValueEventListener() {
+        mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 ArrayList<String> nonAddedUsers = new ArrayList<String>();
                 for(DataSnapshot dr : dataSnapshot.getChildren())
                 {
-                    if(!dr.child("projects").child(mProjectName).exists())
+                    if(!dr.child("Projects").child(mProjectName).exists())
                     {
                         nonAddedUsers.add(dr.getKey());
                     }
@@ -520,8 +520,8 @@ public class ProjectsView extends AppCompatActivity {
                     @Override
                     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                         String userToAdd = ((TextView)view).getText().toString();
-                        mRootRef.child("people").child(userToAdd).setValue(true);
-                        mRootRef.getRoot().child("users").child(mAuth.getCurrentUser().getUid()).child("people").child(userToAdd).child("projects").child(mProjectName).setValue(true);
+                        mRootRef.child("People").child(userToAdd).setValue(true);
+                        mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(userToAdd).child("Projects").child(mProjectName).setValue(true);
                         ad.cancel();
                     }
                 });
