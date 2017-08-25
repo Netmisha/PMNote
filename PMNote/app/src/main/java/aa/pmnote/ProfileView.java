@@ -120,7 +120,7 @@ public class ProfileView extends AppCompatActivity
                 else
                 {
                     uid = firebaseAuth.getCurrentUser().getUid();
-                    mRootRef = FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("people").child(mName);
+                    mRootRef = FirebaseDatabase.getInstance().getReference().child("Users").child(uid).child("People").child(mName);
                     mStorageRef = FirebaseStorage.getInstance().getReference();
                     SetUpWidgetList();
                     SetUpImage();
@@ -224,12 +224,12 @@ public class ProfileView extends AppCompatActivity
     public void onStop() {
         super.onStop();
         if (mAuthStateListener != null) {
-            mAuth.removeAuthStateListener(mAuthStateListener);
+           mAuth.removeAuthStateListener(mAuthStateListener);
         }
         if(widgetsCEL != null)//Widgets
             mRootRef.child("Widgets").removeEventListener(widgetsCEL);
         if(projectsCEL != null)
-            mRootRef.child("Projects").removeEventListener(projectsCEL);
+           mRootRef.child("Projects").removeEventListener(projectsCEL);
     }
 
     @Override
@@ -261,7 +261,7 @@ public class ProfileView extends AppCompatActivity
 
                         }
                     });
-            
+
         }
     }
 
@@ -1203,6 +1203,14 @@ public class ProfileView extends AppCompatActivity
                 LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT);
+
+                AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(ProfileView.this);
+                dlgAlert.setMessage(proj.getText());
+                dlgAlert.setTitle("App Title");
+                dlgAlert.setPositiveButton("OK", null);
+                dlgAlert.setCancelable(true);
+                dlgAlert.create().show();
+
                 ll.addView(proj, lp);
             }
 
