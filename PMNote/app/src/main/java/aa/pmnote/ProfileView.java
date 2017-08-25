@@ -124,6 +124,7 @@ public class ProfileView extends AppCompatActivity
                     mStorageRef = FirebaseStorage.getInstance().getReference();
                     SetUpWidgetList();
                     SetUpImage();
+
                 }
             }
         };
@@ -168,6 +169,49 @@ public class ProfileView extends AppCompatActivity
 
             }
         });
+
+        ImageView avatar = (ImageView) findViewById(R.id.avatar);
+        avatar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                AlertDialog.Builder ad;
+                String title = "Warning !";
+                String message = "Do you want to change profile image?";
+                String button1String = "Yes";
+                String button2String = "Cencel";
+
+                ad = new AlertDialog.Builder(ProfileView.this);
+                ad.setTitle(title);  // заголовок
+                ad.setMessage(message); // сообщение
+                ad.setPositiveButton(button1String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        Intent intent = new Intent()
+                                .setType("image/*")
+                                .setAction(Intent.ACTION_GET_CONTENT);
+
+                        startActivityForResult(Intent.createChooser(intent, "Select a picture"), IMPORT_PICTURE);
+
+
+                    }
+                });
+                ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        Toast.makeText(ProfileView.this, "Cenceled",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+                ad.setCancelable(true);
+                ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    public void onCancel(DialogInterface dialog) {
+                        Toast.makeText(ProfileView.this, "Cenceled",
+                                Toast.LENGTH_LONG).show();
+                    }}
+                );
+
+                ad.show();
+            }
+        });
     }
 
     @Override
@@ -204,6 +248,8 @@ public class ProfileView extends AppCompatActivity
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                             // Get a URL to the uploaded content
                             Uri downloadUrl = taskSnapshot.getDownloadUrl();
+                            ImageView imageView =  (ImageView) findViewById(R.id.avatar);
+                            Glide.with(ProfileView.this).load(downloadUrl.toString()).into(imageView);
                         }
                     })
                     .addOnFailureListener(new OnFailureListener() {
@@ -215,11 +261,7 @@ public class ProfileView extends AppCompatActivity
 
                         }
                     });
-
-
-            ImageView imageView =  (ImageView) findViewById(R.id.avatar);
-            imageView.setImageURI(null);
-            imageView.setImageURI(selectedfile);
+            
         }
     }
 
@@ -1071,7 +1113,6 @@ public class ProfileView extends AppCompatActivity
                 String widget_name = dataSnapshot.getKey();
 
 
-
                 Long type=0L;
                 if(dataSnapshot.child("Type").exists())
                 {
@@ -1237,12 +1278,10 @@ public class ProfileView extends AppCompatActivity
         StorageReference ProfileImgRef = mStorageRef.child("/"+uid + "/" + mName+"/ProfileImage/");
         ProfileImgRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
             @Override
-            public void onSuccess(Uri uri)
-            {
+            public void onSuccess(Uri uri) {
 
                 ImageView image = (ImageView) findViewById(R.id.avatar);
                 Glide.with(ProfileView.this).load(uri.toString()).into(image);
-
             }
         });
 
