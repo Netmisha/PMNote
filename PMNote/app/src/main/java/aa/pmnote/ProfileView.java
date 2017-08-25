@@ -1204,13 +1204,6 @@ public class ProfileView extends AppCompatActivity
                         LinearLayout.LayoutParams.MATCH_PARENT,
                         LinearLayout.LayoutParams.WRAP_CONTENT);
 
-                AlertDialog.Builder dlgAlert  = new AlertDialog.Builder(ProfileView.this);
-                dlgAlert.setMessage(proj.getText());
-                dlgAlert.setTitle("App Title");
-                dlgAlert.setPositiveButton("OK", null);
-                dlgAlert.setCancelable(true);
-                dlgAlert.create().show();
-
                 ll.addView(proj, lp);
             }
 
