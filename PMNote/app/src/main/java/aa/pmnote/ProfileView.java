@@ -1,5 +1,6 @@
 package aa.pmnote;
 ;
+import com.bumptech.glide.Glide;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -122,6 +123,7 @@ public class ProfileView extends AppCompatActivity
                     mRootRef = FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("people").child(mName);
                     mStorageRef = FirebaseStorage.getInstance().getReference();
                     SetUpWidgetList();
+                    SetUpImage();
                 }
             }
         };
@@ -180,7 +182,7 @@ public class ProfileView extends AppCompatActivity
         if (mAuthStateListener != null) {
             mAuth.removeAuthStateListener(mAuthStateListener);
         }
-        if(widgetsCEL != null)
+        if(widgetsCEL != null)//Widgets
             mRootRef.child("Widgets").removeEventListener(widgetsCEL);
         if(projectsCEL != null)
             mRootRef.child("Projects").removeEventListener(projectsCEL);
@@ -1227,30 +1229,24 @@ public class ProfileView extends AppCompatActivity
         });
     }
 
+
     private void SetUpImage()
     {
-        final File file = new File("main");
-       // file = File.createTempFile(Context.getFilesDir(), null, this.getCacheDir());
+        final File file = getFilesDir();
 
         StorageReference ProfileImgRef = mStorageRef.child("/"+uid + "/" + mName+"/ProfileImage/");
-        ProfileImgRef.getFile(file)
-                .addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
-                    @Override
-                    public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
-
-                       // ImageView imageView =  (ImageView) findViewById(R.id.avatar);
-                      //  imageView.setImageURI(null);
-                       // imageView.setImageURI(file);
-                    }
-                }).addOnFailureListener(new OnFailureListener() {
+        ProfileImgRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
             @Override
-            public void onFailure(@NonNull Exception exception) {
-                // Handle failed download
-                // ...
+            public void onSuccess(Uri uri)
+            {
+
+                ImageView image = (ImageView) findViewById(R.id.avatar);
+                Glide.with(ProfileView.this).load(uri.toString()).into(image);
+
             }
         });
+
     }
 }
-
 
 
