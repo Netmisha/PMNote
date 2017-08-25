@@ -2,6 +2,7 @@ package aa.pmnote;
 
 import android.content.Context;
 import android.content.Intent;
+import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.view.Gravity;
 import android.view.View;
@@ -43,6 +44,7 @@ public class ViewFactory {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
         ll.setGravity(Gravity.CENTER);
         ll.setLayoutParams(lp);
+        ll.setTag(Defines.LinearLayoutType.TASK);
 
         ll.addView(checkBoxFactory(context, text, checkBoxStatus));
         ll.addView(textViewFactory(context, text));
@@ -114,11 +116,12 @@ public class ViewFactory {
     static public LinearLayout titledLinearLayoutFactory(Context context, String text)
     {
         LinearLayout ll = new LinearLayout(context);
-        ll.setOrientation(LinearLayout.HORIZONTAL);
+        ll.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
         ll.setGravity(Gravity.CENTER);
         ll.setLayoutParams(lp);
         ll.setVisibility(View.GONE);
+        ll.setPadding(0, 0, 0, 5);
 
         TextView tv = new TextView(context);
         tv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120));
@@ -126,6 +129,7 @@ public class ViewFactory {
         tv.setTextSize(24);
         tv.setText(text);
         tv.setVisibility(View.VISIBLE);
+        tv.setTextColor(Color.BLACK);
 
         ll.addView(tv);
         ll.addView(horizontalDividerFactory(context, Color.BLACK));

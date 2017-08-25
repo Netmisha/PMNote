@@ -61,8 +61,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Calendar;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.regex.Pattern;
 
 import aa.pmnote.Defines;
 
@@ -136,31 +139,40 @@ public class ProjectsActivity extends AppCompatActivity {
         else {
             switch (search_option) {
                 case 0:
-                    for (int i = 0; i < ll.getChildCount(); ++i) {
-                        ll.getChildAt(i).setVisibility(View.VISIBLE);
+                    for(int j = 0; j < ll.getChildCount(); ++j) {
+                        LinearLayout mll = (LinearLayout)ll.getChildAt(j);
+                        for (int i = 0; i < mll.getChildCount(); ++i) {
+                            mll.getChildAt(i).setVisibility(View.VISIBLE);
+                        }
                     }
                     break;
                 case 1:
-                    for (int i = 0; i < ll.getChildCount(); i += 2) {
-                        boolean isCompeted = ((CheckBox) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).isChecked();
-                        if (isCompeted) {
-                            ll.getChildAt(i).setVisibility(View.GONE);
-                            ll.getChildAt(i + 1).setVisibility(View.GONE);
-                        } else {
-                            ll.getChildAt(i).setVisibility(View.VISIBLE);
-                            ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                    for(int j = 0; j < ll.getChildCount(); ++j) {
+                        LinearLayout mll = (LinearLayout) ll.getChildAt(j);
+                        for (int i = 2; i < mll.getChildCount(); i += 2) {
+                            boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(i)).getChildAt(0)).isChecked();
+                            if (isCompeted) {
+                                mll.getChildAt(i).setVisibility(View.GONE);
+                                mll.getChildAt(i + 1).setVisibility(View.GONE);
+                            } else {
+                                mll.getChildAt(i).setVisibility(View.VISIBLE);
+                                mll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                            }
                         }
                     }
                     break;
                 case 2:
-                    for (int i = 0; i < ll.getChildCount(); i += 2) {
-                        boolean isCompeted = ((CheckBox) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).isChecked();
-                        if (!isCompeted) {
-                            ll.getChildAt(i).setVisibility(View.GONE);
-                            ll.getChildAt(i + 1).setVisibility(View.GONE);
-                        } else {
-                            ll.getChildAt(i).setVisibility(View.VISIBLE);
-                            ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                    for(int j = 0; j < ll.getChildCount(); ++j) {
+                        LinearLayout mll = (LinearLayout) ll.getChildAt(j);
+                        for (int i = 2; i < mll.getChildCount(); i += 2) {
+                            boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(i)).getChildAt(0)).isChecked();
+                            if (!isCompeted) {
+                                mll.getChildAt(i).setVisibility(View.GONE);
+                                mll.getChildAt(i + 1).setVisibility(View.GONE);
+                            } else {
+                                mll.getChildAt(i).setVisibility(View.VISIBLE);
+                                mll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                            }
                         }
                     }
                     break;
@@ -266,7 +278,7 @@ public class ProjectsActivity extends AppCompatActivity {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 String date = null, time = null, descr = null;
-                boolean status = (boolean)dataSnapshot.child("Status").getValue();
+                boolean status = Boolean.parseBoolean((String)dataSnapshot.child("Status").getValue());
                 if(dataSnapshot.child("Date").exists()) {
                     date = dataSnapshot.child("Date").getValue(String.class);
                 }
@@ -373,10 +385,12 @@ public class ProjectsActivity extends AppCompatActivity {
                         child.child(name).removeValue();
                     }
                     child = child.child(enteredName);
-                    child.child("Status").setValue(status);
-                    child.child("Date").setValue(dateInput.getText().toString());
-                    child.child("Description").setValue(descriptionInput.getText().toString());
-                    child.child("Time").setValue(timeInput.getText().toString());
+                    Map<String, String> data = new HashMap<String, String>();
+                    data.put("Status", String.valueOf(status));
+                    data.put("Date", dateInput.getText().toString());
+                    data.put("Description", descriptionInput.getText().toString());
+                    data.put("Time", timeInput.getText().toString());
+                    child.setValue(data);
                 }
             }
         });
@@ -441,7 +455,7 @@ public class ProjectsActivity extends AppCompatActivity {
                         child.child("People").child(name).child("None").setValue(true);
                         break;
                     case 1:
-                        child.child("Projects").child(name).child("Status").setValue(true);
+                        child.child("Projects").child(name).child("Status").setValue(String.valueOf(true));
                 }
 
             }
@@ -636,10 +650,10 @@ public class ProjectsActivity extends AppCompatActivity {
                                 SetUpProjectsPersonList(mRootRef);
                                 break;
                             case Defines.TASKS_FRAGMENT:
-                                mLinearLayout.addView(mTodayTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Today"));
-                                mLinearLayout.addView(mWeekTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "This Week"));
-                                mLinearLayout.addView(mMonthTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "This Month"));
-                                mLinearLayout.addView(mOtherTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Other Tasks"));
+                                mLinearLayout.addView(mTodayTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Less than a day"));
+                                mLinearLayout.addView(mWeekTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "7 days"));
+                                mLinearLayout.addView(mMonthTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "30 days"));
+                                mLinearLayout.addView(mOtherTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Ton of time"));
 
                                 SetUpTaskList(mRootRef);
                                 break;
@@ -739,19 +753,18 @@ public class ProjectsActivity extends AppCompatActivity {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     String name = dataSnapshot.getKey();
-                    boolean status = (boolean)dataSnapshot.child("Status").getValue();
-                    Defines.TaskType tt = Defines.TaskType.OTHER;
-                    AddItem(name, status, tt);
+                    boolean status = Boolean.parseBoolean((String)dataSnapshot.child("Status").getValue());
+                    String date = (String)dataSnapshot.child("Date").getValue();
+                    PrepareToAddTask(name, status, date);
                 }
 
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String s) {
-                    ChangeCheckBoxStatus(dataSnapshot.getKey(), (boolean)dataSnapshot.child("Status").getValue());
                 }
 
                 @Override
                 public void onChildRemoved(DataSnapshot dataSnapshot) {
-                    RemovePersonOrProject(dataSnapshot.getKey());
+                    RemoveTaskByText(dataSnapshot.getKey());
                 }
 
                 @Override
@@ -770,6 +783,33 @@ public class ProjectsActivity extends AppCompatActivity {
         {
             int i = FindLinearLayoutByText(name);
             ((CheckBox)((LinearLayout)mLinearLayout.getChildAt(i)).getChildAt(0)).setChecked(newStatus);
+        }
+
+        private void PrepareToAddTask(String name, boolean status, String date)
+        {
+            Defines.TaskType tt = Defines.TaskType.OTHER;
+
+            if(!date.isEmpty()) {
+                String[] parts = date.split("\\.");
+
+                String s = parts[0];
+                Calendar taskDate = Calendar.getInstance();
+                taskDate.set((int) Integer.parseInt(parts[2]), (int) Integer.parseInt(parts[1]) - 1, (int) Integer.parseInt(parts[0]));
+                Calendar currDate = Calendar.getInstance();
+
+                long diffInMS = taskDate.getTime().getTime() - currDate.getTime().getTime();
+                TimeUnit tu = TimeUnit.DAYS;
+                long diffInDays = tu.convert(diffInMS, TimeUnit.MILLISECONDS);
+
+                if (diffInDays < 1)
+                    tt = Defines.TaskType.TODAY;
+                else if (diffInDays < 7)
+                    tt = Defines.TaskType.WEEK;
+                else if (diffInDays < 30)
+                    tt = Defines.TaskType.MONTH;
+            }
+
+            AddItem(name, status, tt);
         }
 
         private void AddItem(String name, boolean checkBoxStatus, Defines.TaskType tt)
@@ -798,13 +838,39 @@ public class ProjectsActivity extends AppCompatActivity {
                 @Override
                 public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                     String name = (String)((CheckBox)ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).getTag();
-                    mRootRef.child("Tasks").child(name).child("Status").setValue(b);
+                    mRootRef.child("Tasks").child(name).child("Status").setValue(String.valueOf(b));
                     ((ProjectsActivity)getActivity()).RefreshCurrentFragment();
                 }
             });
 
-            mLinearLayout.addView(ll);
-            mLinearLayout.addView(ViewFactory.horizontalDividerFactory(getActivity()));
+            switch (tt)
+            {
+                case TODAY:
+                    AddTaskToLL(ll, mTodayTasks);
+                    break;
+                case WEEK:
+                    AddTaskToLL(ll, mWeekTasks);
+                    break;
+                case MONTH:
+                    AddTaskToLL(ll, mMonthTasks);
+                    break;
+                case OTHER:
+                    AddTaskToLL(ll, mOtherTasks);
+                    break;
+            }
+        }
+
+        private void CheckIfLLIsEmpty(LinearLayout ll)
+        {
+            if(ll.getChildCount() == 2)
+                ll.setVisibility(View.GONE);
+        }
+
+        private void AddTaskToLL(LinearLayout task, LinearLayout whereAdd)
+        {
+            whereAdd.addView(task);
+            whereAdd.addView(ViewFactory.horizontalDividerFactory(getActivity()));
+            whereAdd.setVisibility(View.VISIBLE);
         }
 
         private void AddItem(String name, Defines.LinearLayoutType llt)
@@ -832,6 +898,23 @@ public class ProjectsActivity extends AppCompatActivity {
 
             mLinearLayout.addView(ll);
             mLinearLayout.addView(ViewFactory.horizontalDividerFactory(getActivity()));
+        }
+
+        private void RemoveTaskByText(String text)
+        {
+            for(int i = 0; i < mLinearLayout.getChildCount(); ++i)
+            {
+                LinearLayout mll = (LinearLayout)mLinearLayout.getChildAt(i);
+                for(int j = 2; j < mll.getChildCount(); j += Defines.ITEM_SIZE_IN_VIEWS)
+                {
+                    String textViewText = ((TextView)((LinearLayout)mll.getChildAt(j)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                    if(textViewText.equals(text)) {
+                        mll.removeViews(j, 2);
+                        CheckIfLLIsEmpty(mll);
+                        return;
+                    }
+                }
+            }
         }
 
         private void RemovePersonOrProject(String name)

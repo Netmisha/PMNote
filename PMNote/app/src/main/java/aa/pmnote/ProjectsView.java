@@ -48,7 +48,9 @@ import com.google.firebase.database.ValueEventListener;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.HashMap;
 import java.util.Locale;
+import java.util.Map;
 
 public class ProjectsView extends AppCompatActivity {
 
@@ -318,10 +320,12 @@ public class ProjectsView extends AppCompatActivity {
                         child = child.getParent().getParent().child("tasks").child(enteredName);
                     }
 
-                    child.child("Status").setValue(status);
-                    child.child("Date").setValue(dateInput.getText().toString());
-                    child.child("Description").setValue(descriptionInput.getText().toString());
-                    child.child("Time").setValue(timeInput.getText().toString());
+                    Map<String, String> data = new HashMap<String, String>();
+                    data.put("Status", String.valueOf(status));
+                    data.put("Date", dateInput.getText().toString());
+                    data.put("Description", descriptionInput.getText().toString());
+                    data.put("Time", timeInput.getText().toString());
+                    child.setValue(data);
 
                     mRootRef.child("Tasks").child(enteredName).setValue(true);
                 }
@@ -684,7 +688,7 @@ public class ProjectsView extends AppCompatActivity {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                 String taskName = (String)compoundButton.getTag();
-                mRoot.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks").child(taskName).child("Status").setValue(b);
+                mRoot.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks").child(taskName).child("Status").setValue(String.valueOf(b));
             }
         };
 
@@ -699,7 +703,7 @@ public class ProjectsView extends AppCompatActivity {
                                 .child(taskName).addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(DataSnapshot dataSnapshot) {
-                                boolean taskStatus = (boolean) dataSnapshot.child("Status").getValue();
+                                boolean taskStatus = Boolean.parseBoolean((String)dataSnapshot.child("Status").getValue());
                                 final LinearLayout ll = ViewFactory.linearLayoutFactory(getActivity(), taskName, taskStatus);
 
                                 ll.setOnClickListener(new View.OnClickListener() {
@@ -724,7 +728,7 @@ public class ProjectsView extends AppCompatActivity {
                                     @Override
                                     public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                                         mRoot.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks")
-                                                .child((String) ((CheckBox) ll.getChildAt(1)).getTag()).child("Status").setValue(b);
+                                                .child((String) ((CheckBox) ll.getChildAt(1)).getTag()).child("Status").setValue(String.valueOf(b));
                                         ((ProjectsActivity) getActivity()).RefreshCurrentFragment();
                                     }
                                 });
