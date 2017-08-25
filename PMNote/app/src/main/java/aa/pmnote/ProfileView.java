@@ -1,7 +1,9 @@
 package aa.pmnote;
 ;
+import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.net.Uri;
 import android.os.Bundle;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
@@ -23,6 +25,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.ImageView;
 import android.widget.Space;
 import android.widget.Toast;
 
@@ -39,6 +42,8 @@ import 	android.widget.Spinner;
 
 import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -46,9 +51,14 @@ import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FileDownloadTask;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
 
 import aa.pmnote.CustomAdapter;import aa.pmnote.R;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -68,6 +78,7 @@ public class ProfileView extends AppCompatActivity
     private FirebaseAuth mAuth;
     private FirebaseAuth.AuthStateListener mAuthStateListener;
     private DatabaseReference mRootRef;
+    private StorageReference mStorageRef;
     public String uid;
     public static Boolean isThereAnyProjects;
 
@@ -78,7 +89,9 @@ public class ProfileView extends AppCompatActivity
     private final static int COMBOBOX = 4;
     private final static int SPINBOX = 5;
 
+    final static int IMPORT_PICTURE = 123;
     @Override
+
     protected void onCreate(Bundle savedInstanceState) {
 
         super.onCreate(savedInstanceState);
@@ -107,6 +120,7 @@ public class ProfileView extends AppCompatActivity
                 {
                     uid = firebaseAuth.getCurrentUser().getUid();
                     mRootRef = FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("people").child(mName);
+                    mStorageRef = FirebaseStorage.getInstance().getReference();
                     SetUpWidgetList();
                 }
             }
@@ -166,6 +180,45 @@ public class ProfileView extends AppCompatActivity
         if (mAuthStateListener != null) {
             mAuth.removeAuthStateListener(mAuthStateListener);
         }
+        if(widgetsCEL != null)
+            mRootRef.child("Widgets").removeEventListener(widgetsCEL);
+        if(projectsCEL != null)
+            mRootRef.child("Projects").removeEventListener(projectsCEL);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode==IMPORT_PICTURE && resultCode==RESULT_OK) {
+            Uri selectedfile = data.getData(); //The uri with the location of the file
+
+
+            StorageReference ProfileImgRef = mStorageRef.child("/"+uid + "/" + mName+"/ProfileImage/");
+            ProfileImgRef.delete();
+
+            ProfileImgRef.putFile(selectedfile)
+                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                            // Get a URL to the uploaded content
+                            Uri downloadUrl = taskSnapshot.getDownloadUrl();
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            // Handle unsuccessful uploads
+                            Toast.makeText(ProfileView.this, "Upload faild",
+                                    Toast.LENGTH_LONG).show();
+
+                        }
+                    });
+
+
+            ImageView imageView =  (ImageView) findViewById(R.id.avatar);
+            imageView.setImageURI(null);
+            imageView.setImageURI(selectedfile);
+        }
     }
 
     @Override
@@ -184,6 +237,12 @@ public class ProfileView extends AppCompatActivity
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.set_img) {
+
+            Intent intent = new Intent()
+                    .setType("image/*")
+                    .setAction(Intent.ACTION_GET_CONTENT);
+
+            startActivityForResult(Intent.createChooser(intent, "Select a picture"), IMPORT_PICTURE);
 
             return true;
         }
@@ -999,11 +1058,12 @@ public class ProfileView extends AppCompatActivity
         ll.addView(s2_layout, lp);
     }
 
-
+    private ChildEventListener widgetsCEL = null;
+    private ChildEventListener projectsCEL = null;
     //get widget list from database
     private void SetUpWidgetList()
     {
-        mRootRef.child("Widgets").addChildEventListener(new ChildEventListener() {
+        widgetsCEL = mRootRef.child("Widgets").addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                 String widget_name = dataSnapshot.getKey();
@@ -1088,7 +1148,7 @@ public class ProfileView extends AppCompatActivity
             }
         });
 
-        mRootRef.child("Projects").addChildEventListener(new ChildEventListener() {
+        projectsCEL = mRootRef.child("Projects").addChildEventListener(new ChildEventListener() {
             @Override
             public void onChildAdded(DataSnapshot dataSnapshot, String s) {
 
@@ -1163,6 +1223,30 @@ public class ProfileView extends AppCompatActivity
             @Override
             public void onCancelled(DatabaseError databaseError) {
 
+            }
+        });
+    }
+
+    private void SetUpImage()
+    {
+        final File file = new File("main");
+       // file = File.createTempFile(Context.getFilesDir(), null, this.getCacheDir());
+
+        StorageReference ProfileImgRef = mStorageRef.child("/"+uid + "/" + mName+"/ProfileImage/");
+        ProfileImgRef.getFile(file)
+                .addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
+                    @Override
+                    public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
+
+                       // ImageView imageView =  (ImageView) findViewById(R.id.avatar);
+                      //  imageView.setImageURI(null);
+                       // imageView.setImageURI(file);
+                    }
+                }).addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception exception) {
+                // Handle failed download
+                // ...
             }
         });
     }
