@@ -15,7 +15,9 @@ import android.support.v4.app.FragmentManager;
 import android.support.v4.app.FragmentPagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.os.Bundle;
+import android.text.InputFilter;
 import android.text.InputType;
+import android.text.Spanned;
 import android.view.ContextMenu;
 import android.view.Gravity;
 import android.view.LayoutInflater;
@@ -151,16 +153,28 @@ public class ProjectsView extends AppCompatActivity {
     private void AddNewPerson() {
         //build dialog with request for name input
         AlertDialog.Builder builder = new AlertDialog.Builder(ProjectsView.this);
-        builder.setTitle("Enter item info");
+        builder.setTitle("Enter person name");
 
         final LinearLayout ll = new LinearLayout(ProjectsView.this);
         ll.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
         ll.setOrientation(LinearLayout.VERTICAL);
         ll.setGravity(Gravity.CENTER);
 
+        InputFilter nameFilter = new InputFilter() {
+            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                for (int i = start;i < end;i++) {
+                    if (!Character.isLetterOrDigit(source.charAt(i)) && !Character.toString(source.charAt(i)).equals("_") && !Character.toString(source.charAt(i)).equals("-")) {
+                        return "";
+                    }
+                }
+                return null;
+            }
+        };
+
         final EditText input = new EditText(ProjectsView.this);
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         input.setHint("Name");
+        input.setFilters(new InputFilter[]{nameFilter});
 
         ll.addView(input);
 
@@ -243,10 +257,22 @@ public class ProjectsView extends AppCompatActivity {
         ll.setOrientation(LinearLayout.VERTICAL);
         ll.setGravity(Gravity.CENTER);
 
+        InputFilter nameFilter = new InputFilter() {
+            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+                for (int i = start;i < end;i++) {
+                    if (!Character.isLetterOrDigit(source.charAt(i)) && !Character.toString(source.charAt(i)).equals("_") && !Character.toString(source.charAt(i)).equals("-")) {
+                        return "";
+                    }
+                }
+                return null;
+            }
+        };
+
         final EditText nameInput = new EditText(ProjectsView.this);
         nameInput.setInputType(InputType.TYPE_CLASS_TEXT);
         nameInput.setHint("Name");
         nameInput.setText(name != null ? name : "");
+        nameInput.setFilters(new InputFilter[] {nameFilter});
         ll.addView(nameInput);
 
         final EditText timeInput = new EditText(ProjectsView.this);
