@@ -193,15 +193,16 @@ public class ProjectsView extends AppCompatActivity {
     }
 
     public void AddOrEditTask() {
-        AddOrEditTask(null, null, null, null, false);
+        AddOrEditTask(null, null, null, null, false, null);
     }
 
     public void AddOrEditTask(final String name) {
-        mRootRef.child("Tasks").child(name).addListenerForSingleValueEvent(new ValueEventListener() {
+        mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks").child(name).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 String date = null, time = null, descr = null;
-                boolean status = (boolean) dataSnapshot.child("Status").getValue();
+                boolean status = Boolean.parseBoolean((String) dataSnapshot.child("Status").getValue());
+                ArrayList<String> attachedToList = new ArrayList<String>();
                 if (dataSnapshot.child("Date").exists()) {
                     date = dataSnapshot.child("Date").getValue(String.class);
                 }
@@ -211,8 +212,18 @@ public class ProjectsView extends AppCompatActivity {
                 if (dataSnapshot.child("Description").exists()) {
                     descr = dataSnapshot.child("Description").getValue(String.class);
                 }
+                if(dataSnapshot.child("Projects").exists())
+                {
+                    for(DataSnapshot ds : dataSnapshot.child("Projects").getChildren())
+                        attachedToList.add("Project:" + ds.getKey());
+                }
+                if(dataSnapshot.child("People").exists())
+                {
+                    for(DataSnapshot ds : dataSnapshot.child("People").getChildren())
+                        attachedToList.add("Person:" + ds.getKey());
+                }
 
-                AddOrEditTask(name, date, time, descr, status);
+                AddOrEditTask(name, date, time, descr, status, attachedToList);
             }
 
             @Override
@@ -222,7 +233,7 @@ public class ProjectsView extends AppCompatActivity {
         });
     }
 
-    public void AddOrEditTask(final String name, final String date, final String time, final String description, final boolean status) {
+    public void AddOrEditTask(final String name, final String date, final String time, final String description, final boolean status, ArrayList<String> attachedToList) {
         //build dialog with request for name input
         AlertDialog.Builder builder = new AlertDialog.Builder(ProjectsView.this);
         builder.setTitle("Edit task");
@@ -294,6 +305,20 @@ public class ProjectsView extends AppCompatActivity {
         descriptionInput.setText(description != null ? description : "");
         ll.addView(descriptionInput);
 
+        final LinearLayout attachToLL = new LinearLayout(ProjectsView.this);
+        attachToLL.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+        attachToLL.setOrientation(LinearLayout.VERTICAL);
+        attachToLL.setGravity(Gravity.CENTER);
+        if(attachedToList != null)
+        {
+            for(String text : attachedToList)
+            {
+                attachToLL.addView(ViewFactory.attachToEditTextFactory(ProjectsView.this, mRootRef, attachToLL, text));
+            }
+        }
+        attachToLL.addView(ViewFactory.attachToEditTextFactory(ProjectsView.this, mRootRef, attachToLL));
+        ll.addView(attachToLL);
+
         builder.setView(ll);
 
         //set on 'ok' listener
@@ -319,6 +344,21 @@ public class ProjectsView extends AppCompatActivity {
                     data.put("Description", descriptionInput.getText().toString());
                     data.put("Time", timeInput.getText().toString());
                     child.setValue(data);
+
+                    for(int i = 0; i < attachToLL.getChildCount() - 1; ++i)
+                    {
+                        String text = ((EditText)attachToLL.getChildAt(i)).getText().toString();
+                        String parts[] = text.split(":");
+                        if(parts[0].equals("Person")) {
+                            child.child("People").child(parts[1]).setValue(true);
+                            child = child.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(parts[1]).child("Tasks").child(enteredName);
+                            child.setValue(true);
+                        }
+                        else {
+                            child.child("Projects").child(parts[1]).setValue(true);
+                            child.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Projects").child(parts[1]).child("Tasks").child(enteredName).setValue(true);
+                        }
+                    }
 
                     mRootRef.child("Tasks").child(enteredName).setValue(true);
                 }
