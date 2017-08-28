@@ -1,19 +1,37 @@
 package aa.pmnote;
 
+import android.app.TimePickerDialog;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.support.v7.app.AlertDialog;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.ListView;
+import android.widget.ScrollView;
+import android.widget.Spinner;
 import android.widget.TextView;
+import android.widget.TimePicker;
+
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.ValueEventListener;
 
 import org.w3c.dom.Text;
+
+import java.util.ArrayList;
+import java.util.Calendar;
 
 /**
  * Created by anton.gorielikov on 8/23/2017.
@@ -22,8 +40,7 @@ import org.w3c.dom.Text;
 public class ViewFactory {
     public final static int LINEAR_LAYOUT_CHECKBOX_POSITION = 0;
 
-    static public LinearLayout linearLayoutFactory(Context context, String text, Defines.LinearLayoutType llt)
-    {
+    static public LinearLayout linearLayoutFactory(Context context, String text, Defines.LinearLayoutType llt) {
         LinearLayout ll = new LinearLayout(context);
         ll.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
@@ -37,8 +54,7 @@ public class ViewFactory {
         return ll;
     }
 
-    static public LinearLayout linearLayoutFactory(Context context, String text, boolean checkBoxStatus)
-    {
+    static public LinearLayout linearLayoutFactory(Context context, String text, boolean checkBoxStatus) {
         LinearLayout ll = new LinearLayout(context);
         ll.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
@@ -52,8 +68,7 @@ public class ViewFactory {
         return ll;
     }
 
-    static public CheckBox checkBoxFactory(Context context, String text, boolean checked)
-    {
+    static public CheckBox checkBoxFactory(Context context, String text, boolean checked) {
         final CheckBox cb = new CheckBox(context);
         cb.setLayoutParams(new ViewGroup.LayoutParams(120, 120));
         cb.setText("");
@@ -63,12 +78,10 @@ public class ViewFactory {
         return cb;
     }
 
-    static public ImageView imageViewFactory(Context context, Defines.LinearLayoutType llt)
-    {
+    static public ImageView imageViewFactory(Context context, Defines.LinearLayoutType llt) {
         ImageView iv = new ImageView(context);
         iv.setLayoutParams(new ViewGroup.LayoutParams(120, 120));
-        switch(llt)
-        {
+        switch (llt) {
             case PERSON:
                 iv.setImageResource(R.drawable.ic_person);
                 break;
@@ -82,39 +95,34 @@ public class ViewFactory {
         return iv;
     }
 
-    static public TextView textViewFactory(Context context, String text)
-    {
+    static public TextView textViewFactory(Context context, String text) {
         return textViewFactory(context, text, null);
     }
 
-    static public TextView textViewFactory(Context context, String text, View.OnClickListener onClickListener)
-    {
+    static public TextView textViewFactory(Context context, String text, View.OnClickListener onClickListener) {
         TextView tv = new TextView(context);
         tv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         tv.setGravity(Gravity.RIGHT);
         tv.setTextSize(20);
         tv.setText(text);
-        if(onClickListener != null)
+        if (onClickListener != null)
             tv.setOnClickListener(onClickListener);
 
         return tv;
     }
 
-    static public View horizontalDividerFactory(Context context)
-    {
+    static public View horizontalDividerFactory(Context context) {
         return horizontalDividerFactory(context, Color.GRAY);
     }
 
-    static public View horizontalDividerFactory(Context context, int color)
-    {
+    static public View horizontalDividerFactory(Context context, int color) {
         View hd = new View(context);
         hd.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
         hd.setBackgroundColor(color);
         return hd;
     }
 
-    static public LinearLayout titledLinearLayoutFactory(Context context, String text)
-    {
+    static public LinearLayout titledLinearLayoutFactory(Context context, String text) {
         LinearLayout ll = new LinearLayout(context);
         ll.setOrientation(LinearLayout.VERTICAL);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
@@ -135,5 +143,136 @@ public class ViewFactory {
         ll.addView(horizontalDividerFactory(context, Color.BLACK));
 
         return ll;
+    }
+
+    static public EditText attachToEditTextFactory(final Context context, final DatabaseReference root, final LinearLayout linearLayout)
+    {
+        return attachToEditTextFactory(context, root, linearLayout, null);
+    }
+
+    static public EditText attachToEditTextFactory(final Context context, final DatabaseReference root, final LinearLayout linearLayout, String text) {
+        final EditText et = new EditText(context);
+        et.setHint("Attach to");
+        et.setKeyListener(null);
+        if(text != null) {
+            et.setText(text);
+        }
+
+        et.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, final boolean b) {
+                if (b) {
+                    root.addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            AlertDialog.Builder builder = new AlertDialog.Builder(context);
+                            builder.setTitle("Attach to");
+
+                            LinearLayout buildLL = new LinearLayout(context);
+                            buildLL.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
+                            buildLL.setOrientation(LinearLayout.VERTICAL);
+
+                            final Spinner spinner = new Spinner(context);
+                            spinner.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+                            final ArrayList<String> list = new ArrayList<>();
+                            list.add("Person");
+                            list.add("Project");
+                            final ArrayAdapter<String> adapter = new ArrayAdapter<String>(context,
+                                    R.layout.my_spinner_item, list);
+                            adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+                            spinner.setAdapter(adapter);
+                            adapter.notifyDataSetChanged();
+                            buildLL.addView(spinner);
+
+                            final ListView peopleView = listViewFactory(context, dataSnapshot.child("People"));
+                            peopleView.setVisibility(View.GONE);
+                            final ListView projectsView = listViewFactory(context, dataSnapshot.child("Projects"));
+                            projectsView.setVisibility(View.GONE);
+
+                            spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                                @Override
+                                public void onItemSelected(AdapterView<?> adapterView, View view, int position, long l) {
+                                    switch(position)
+                                    {
+                                        case 0:
+                                            projectsView.setVisibility(View.GONE);
+                                            peopleView.setVisibility(View.VISIBLE);
+                                            break;
+                                        case 1:
+                                            peopleView.setVisibility(View.GONE);
+                                            projectsView.setVisibility(View.VISIBLE);
+                                            break;
+                                    }
+                                }
+
+                                @Override
+                                public void onNothingSelected(AdapterView<?> adapterView) {
+
+                                }
+                            });
+
+                            buildLL.addView(peopleView);
+                            buildLL.addView(projectsView);
+
+                            builder.setView(buildLL);
+                            final AlertDialog ad = builder.create();
+
+                            peopleView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                                @Override
+                                public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                                    String name = ((TextView)view).getText().toString();
+                                    et.setText("Person:" + name);
+                                    linearLayout.addView(attachToEditTextFactory(context, root, linearLayout));
+                                    ad.dismiss();
+                                }
+                            });
+
+                            projectsView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                                @Override
+                                public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                                    String name = ((TextView)view).getText().toString();
+                                    et.setText("Project:" + name);
+                                    linearLayout.addView(attachToEditTextFactory(context, root, linearLayout));
+                                    ad.dismiss();
+                                }
+                            });
+
+                            ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                                @Override
+                                public void onCancel(DialogInterface dialogInterface) {
+                                    if(linearLayout.getChildCount() > 1 && !et.getText().toString().isEmpty())
+                                        linearLayout.removeView(et);
+                                }
+                            });
+                            ad.show();
+
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+
+                        }
+                    });
+                }
+            }
+        });
+
+        return et;
+    }
+
+    public static ListView listViewFactory(Context context, DataSnapshot ds){
+
+        ArrayList<String> arrayList = new ArrayList<String>();
+        for(DataSnapshot dataSnapshot : ds.getChildren())
+        {
+            arrayList.add(dataSnapshot.getKey());
+        }
+
+        ListView lv = new ListView(context);
+        lv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        final ArrayAdapter<String> arrayAdapter = new ArrayAdapter<String>(context, android.R.layout.simple_list_item_1, arrayList);
+        lv.setAdapter(arrayAdapter);
+
+        return lv;
     }
 }

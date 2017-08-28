@@ -101,8 +101,7 @@ public class ProjectsView extends AppCompatActivity {
 
             @Override
             public void onPageSelected(int position) {
-                switch (position)
-                {
+                switch (position) {
                     case Defines.PROJECT_FRAGMENT:
                         setTitle(Defines.PROJECT_FRAGMENT_TITLE + "'" + mProjectName + "'");
                         break;
@@ -123,12 +122,9 @@ public class ProjectsView extends AppCompatActivity {
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                if(firebaseAuth.getCurrentUser() == null)
-                {
+                if (firebaseAuth.getCurrentUser() == null) {
                     finish();
-                }
-                else
-                {
+                } else {
                     String uid = firebaseAuth.getCurrentUser().getUid();
                     mRootRef = FirebaseDatabase.getInstance().getReference().child("Users").child(uid).child("Projects").child(mProjectName);
                 }
@@ -140,8 +136,7 @@ public class ProjectsView extends AppCompatActivity {
         fab.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                switch(mViewPager.getCurrentItem())
-                {
+                switch (mViewPager.getCurrentItem()) {
                     case Defines.PROJECT_FRAGMENT:
                         AddNewPerson();
                         break;
@@ -197,25 +192,23 @@ public class ProjectsView extends AppCompatActivity {
         builder.show();
     }
 
-    public void AddOrEditTask()
-    {
+    public void AddOrEditTask() {
         AddOrEditTask(null, null, null, null, false);
     }
 
-    public void AddOrEditTask(final String name)
-    {
+    public void AddOrEditTask(final String name) {
         mRootRef.child("Tasks").child(name).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 String date = null, time = null, descr = null;
-                boolean status = (boolean)dataSnapshot.child("Status").getValue();
-                if(dataSnapshot.child("Date").exists()) {
+                boolean status = (boolean) dataSnapshot.child("Status").getValue();
+                if (dataSnapshot.child("Date").exists()) {
                     date = dataSnapshot.child("Date").getValue(String.class);
                 }
-                if(dataSnapshot.child("Time").exists()) {
+                if (dataSnapshot.child("Time").exists()) {
                     time = dataSnapshot.child("Time").getValue(String.class);
                 }
-                if(dataSnapshot.child("Description").exists()) {
+                if (dataSnapshot.child("Description").exists()) {
                     descr = dataSnapshot.child("Description").getValue(String.class);
                 }
 
@@ -249,13 +242,13 @@ public class ProjectsView extends AppCompatActivity {
         timeInput.setKeyListener(null);
         timeInput.setHint("Expire Time");
         timeInput.setText(time != null ? time : "");
-        if(date == null) {
+        if (date == null) {
             timeInput.setVisibility(View.GONE);
         }
         timeInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean b) {
-                if(b) {
+                if (b) {
                     Calendar c = Calendar.getInstance();
                     TimePickerDialog tpd = new TimePickerDialog(ProjectsView.this, new TimePickerDialog.OnTimeSetListener() {
                         @Override
@@ -276,7 +269,7 @@ public class ProjectsView extends AppCompatActivity {
         dateInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean b) {
-                if(b) {
+                if (b) {
                     Calendar c = Calendar.getInstance();
                     DatePickerDialog dpd = new DatePickerDialog(ProjectsView.this, new DatePickerDialog.OnDateSetListener() {
                         @Override
@@ -308,7 +301,7 @@ public class ProjectsView extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String enteredName = nameInput.getText().toString();
-                if(!enteredName.isEmpty()) {
+                if (!enteredName.isEmpty()) {
                     DatabaseReference child = mRootRef;
                     if (name != null && !enteredName.equals(name)) {
                         child.child("Tasks").child(name).removeValue();
@@ -361,8 +354,7 @@ public class ProjectsView extends AppCompatActivity {
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
-        switch(mViewPager.getCurrentItem())
-        {
+        switch (mViewPager.getCurrentItem()) {
             case Defines.PROJECT_FRAGMENT:
                 getMenuInflater().inflate(R.menu.menu_projects_view, menu);
                 break;
@@ -374,18 +366,16 @@ public class ProjectsView extends AppCompatActivity {
     }
 
     @Override
-    public boolean onContextItemSelected(MenuItem item)
-    {
-        String key = ((TextView)((LinearLayout)last_context_selected).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();;
+    public boolean onContextItemSelected(MenuItem item) {
+        String key = ((TextView) ((LinearLayout) last_context_selected).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+        ;
         DatabaseReference child = null;
-        switch(item.getItemId())
-        {
+        switch (item.getItemId()) {
             case 1:
                 last_context_selected.callOnClick();
                 break;
             case 2:
-                switch ((Defines.LinearLayoutType)last_context_selected.getTag())
-                {
+                switch ((Defines.LinearLayoutType) last_context_selected.getTag()) {
                     case PERSON:
                         mRootRef.child("People").child(key).removeValue();
                         mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(key).child("Projects").child(mProjectName).removeValue();
@@ -397,8 +387,7 @@ public class ProjectsView extends AppCompatActivity {
                 }
                 break;
             case 3:
-                switch ((Defines.LinearLayoutType)last_context_selected.getTag())
-                {
+                switch ((Defines.LinearLayoutType) last_context_selected.getTag()) {
                     case PERSON:
                         mRootRef.child("People").child(key).removeValue();
                         child = mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People");
@@ -415,13 +404,13 @@ public class ProjectsView extends AppCompatActivity {
     }
 
     private View last_context_selected;
+
     @Override
     public void onCreateContextMenu(ContextMenu menu,
                                     View view,
-                                    ContextMenu.ContextMenuInfo info)
-    {
+                                    ContextMenu.ContextMenuInfo info) {
         last_context_selected = view;
-        if(view instanceof LinearLayout) {
+        if (view instanceof LinearLayout) {
             menu.setHeaderTitle("Choose an action");
             menu.add(Menu.NONE, 1, Menu.NONE, "Open");
             menu.add(Menu.NONE, 2, Menu.NONE, "Remove from project");
@@ -437,7 +426,7 @@ public class ProjectsView extends AppCompatActivity {
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
-        switch(id) {
+        switch (id) {
             case R.id.action_signout:
                 mAuth.signOut();
                 return true;
@@ -452,16 +441,13 @@ public class ProjectsView extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void AddTask()
-    {
+    private void AddTask() {
         mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 ArrayList<String> nonAddedUsers = new ArrayList<String>();
-                for(DataSnapshot dr : dataSnapshot.getChildren())
-                {
-                    if(!dr.child("Projects").child(mProjectName).exists())
-                    {
+                for (DataSnapshot dr : dataSnapshot.getChildren()) {
+                    if (!dr.child("Projects").child(mProjectName).exists()) {
                         nonAddedUsers.add(dr.getKey());
                     }
                 }
@@ -479,7 +465,7 @@ public class ProjectsView extends AppCompatActivity {
                 lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                        String taskToAdd = ((TextView)view).getText().toString();
+                        String taskToAdd = ((TextView) view).getText().toString();
                         mRootRef.child("Tasks").child(taskToAdd).setValue(true);
                         mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(taskToAdd).child("Projects").child(mProjectName).setValue(true);
                         ad.cancel();
@@ -496,16 +482,13 @@ public class ProjectsView extends AppCompatActivity {
         });
     }
 
-    private void AddPerson()
-    {
+    private void AddPerson() {
         mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 ArrayList<String> nonAddedUsers = new ArrayList<String>();
-                for(DataSnapshot dr : dataSnapshot.getChildren())
-                {
-                    if(!dr.child("Projects").child(mProjectName).exists())
-                    {
+                for (DataSnapshot dr : dataSnapshot.getChildren()) {
+                    if (!dr.child("Projects").child(mProjectName).exists()) {
                         nonAddedUsers.add(dr.getKey());
                     }
                 }
@@ -523,7 +506,7 @@ public class ProjectsView extends AppCompatActivity {
                 lv.setOnItemClickListener(new AdapterView.OnItemClickListener() {
                     @Override
                     public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
-                        String userToAdd = ((TextView)view).getText().toString();
+                        String userToAdd = ((TextView) view).getText().toString();
                         mRootRef.child("People").child(userToAdd).setValue(true);
                         mRootRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(userToAdd).child("Projects").child(mProjectName).setValue(true);
                         ad.cancel();
@@ -540,8 +523,7 @@ public class ProjectsView extends AppCompatActivity {
         });
     }
 
-    public DatabaseReference GetRootRef()
-    {
+    public DatabaseReference GetRootRef() {
         return mRootRef;
     }
 
@@ -584,23 +566,22 @@ public class ProjectsView extends AppCompatActivity {
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_project_tasks_view, container, false);
-            mLinearLayout = (LinearLayout)rootView.findViewById(R.id.projectTasksLayout);
+            mLinearLayout = (LinearLayout) rootView.findViewById(R.id.projectTasksLayout);
             mAuth = FirebaseAuth.getInstance();
             mAuthStateListener = new FirebaseAuth.AuthStateListener() {
                 @Override
                 public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                    if(firebaseAuth.getCurrentUser() != null)
-                    {
-                        mRoot = ((ProjectsView)getActivity()).GetRootRef();
+                    if (firebaseAuth.getCurrentUser() != null) {
+                        mRoot = ((ProjectsView) getActivity()).GetRootRef();
                         SetUpTasksListener();
                     }
                 }
             };
 
-            if(getArguments().getInt(ARG_SECTION_NUMBER) - 1 == Defines.PROJECT_TASKS_FRAGMENT) {
+            if (getArguments().getInt(ARG_SECTION_NUMBER) - 1 == Defines.PROJECT_TASKS_FRAGMENT) {
                 mSearchCategory = new Spinner(getActivity());
                 mSearchCategory.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-                ((LinearLayout)rootView.findViewById(R.id.mainLL)).addView(mSearchCategory, 0);
+                ((LinearLayout) rootView.findViewById(R.id.mainLL)).addView(mSearchCategory, 0);
 
                 mSpinnerList.add("Show all");
                 mSpinnerList.add("Show open");
@@ -661,22 +642,19 @@ public class ProjectsView extends AppCompatActivity {
 
         }
 
-        private int FindLinearLayoutByText(String text)
-        {
+        private int FindLinearLayoutByText(String text) {
             int childCount = mLinearLayout.getChildCount();
             int i;
-            for(i = 0; i < childCount; i += Defines.ITEM_SIZE_IN_VIEWS)
-            {
-                String llText =((TextView)((LinearLayout)mLinearLayout.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-                if(llText.equals(text)) {
+            for (i = 0; i < childCount; i += Defines.ITEM_SIZE_IN_VIEWS) {
+                String llText = ((TextView) ((LinearLayout) mLinearLayout.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                if (llText.equals(text)) {
                     break;
                 }
             }
             return i;
         }
 
-        private void RemoveItem(String name)
-        {
+        private void RemoveItem(String name) {
             int i = FindLinearLayoutByText(name);
             mLinearLayout.removeViews(i, Defines.ITEM_SIZE_IN_VIEWS);
         }
@@ -687,14 +665,13 @@ public class ProjectsView extends AppCompatActivity {
         private CompoundButton.OnCheckedChangeListener ccl = new CompoundButton.OnCheckedChangeListener() {
             @Override
             public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                String taskName = (String)compoundButton.getTag();
+                String taskName = (String) compoundButton.getTag();
                 mRoot.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks").child(taskName).child("Status").setValue(String.valueOf(b));
             }
         };
 
-        private void SetUpTasksListener()
-        {
-            if(getArguments().getInt(ARG_SECTION_NUMBER) - 1 == Defines.PROJECT_TASKS_FRAGMENT) {
+        private void SetUpTasksListener() {
+            if (getArguments().getInt(ARG_SECTION_NUMBER) - 1 == Defines.PROJECT_TASKS_FRAGMENT) {
                 tasksCEV = mRoot.child("Tasks").addChildEventListener(new ChildEventListener() {
                     @Override
                     public void onChildAdded(DataSnapshot dataSnapshot, String s) {
@@ -703,7 +680,7 @@ public class ProjectsView extends AppCompatActivity {
                                 .child(taskName).addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(DataSnapshot dataSnapshot) {
-                                boolean taskStatus = Boolean.parseBoolean((String)dataSnapshot.child("Status").getValue());
+                                boolean taskStatus = Boolean.parseBoolean((String) dataSnapshot.child("Status").getValue());
                                 final LinearLayout ll = ViewFactory.linearLayoutFactory(getActivity(), taskName, taskStatus);
 
                                 ll.setOnClickListener(new View.OnClickListener() {
@@ -764,9 +741,7 @@ public class ProjectsView extends AppCompatActivity {
 
                     }
                 });
-            }
-            else
-            {
+            } else {
                 peopleCEV = mRoot.child("People").addChildEventListener(new ChildEventListener() {
                     @Override
                     public void onChildAdded(DataSnapshot dataSnapshot, String s) {
@@ -777,8 +752,8 @@ public class ProjectsView extends AppCompatActivity {
                         ll.setOnClickListener(new View.OnClickListener() {
                             @Override
                             public void onClick(View view) {
-                                Intent intent = new Intent(getActivity(), ((Defines.LinearLayoutType)view.getTag() == Defines.LinearLayoutType.PERSON ? ProfileView.class : ProjectsView.class ));
-                                String extraInfo = ((TextView)((LinearLayout)view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                                Intent intent = new Intent(getActivity(), ((Defines.LinearLayoutType) view.getTag() == Defines.LinearLayoutType.PERSON ? ProfileView.class : ProjectsView.class));
+                                String extraInfo = ((TextView) ((LinearLayout) view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
                                 intent.putExtra(Defines.INFO_TAG, extraInfo);
                                 startActivity(intent);
                             }
@@ -833,9 +808,9 @@ public class ProjectsView extends AppCompatActivity {
             if (mAuthStateListener != null) {
                 mAuth.removeAuthStateListener(mAuthStateListener);
             }
-            if(peopleCEV != null)
+            if (peopleCEV != null)
                 mRoot.child("People").removeEventListener(peopleCEV);
-            if(tasksCEV != null)
+            if (tasksCEV != null)
                 mRoot.child("Tasks").removeEventListener(tasksCEV);
         }
     }
@@ -856,7 +831,6 @@ public class ProjectsView extends AppCompatActivity {
         public Fragment getItem(int position) {
             // getItem is called to instantiate the fragment for the given page.
             // Return a PlaceholderFragment (defined as a static inner class below).
-            //TODO: change it to produce another fragment if position == 0
             return ActivityFragment.newInstance(position + 1);
         }
 

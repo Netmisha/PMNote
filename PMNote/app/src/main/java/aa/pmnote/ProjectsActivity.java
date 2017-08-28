@@ -100,10 +100,9 @@ public class ProjectsActivity extends AppCompatActivity {
         HideItemsBySearchOptions(mSearchOptions.getSelectedItemPosition());
     }
 
-    private void HideItemsBySearchOptions(int search_option)
-    {
+    private void HideItemsBySearchOptions(int search_option) {
         LinearLayout ll = mSectionsPagerAdapter.getFragment(mViewPager.getCurrentItem()).GetLinearLayout();
-        if(mViewPager.getCurrentItem() == 0) {
+        if (mViewPager.getCurrentItem() == 0) {
             switch (search_option) {
                 case 0:
                     for (int i = 0; i < ll.getChildCount(); ++i) {
@@ -112,7 +111,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     break;
                 case 1:
                     for (int i = 0; i < ll.getChildCount(); i += 2) {
-                        boolean isProject = Defines.LinearLayoutType.PROJECT ==((ImageView)((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
+                        boolean isProject = Defines.LinearLayoutType.PROJECT == ((ImageView) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
                         if (!isProject) {
                             ll.getChildAt(i).setVisibility(View.GONE);
                             ll.getChildAt(i + 1).setVisibility(View.GONE);
@@ -124,7 +123,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     break;
                 case 2:
                     for (int i = 0; i < ll.getChildCount(); i += 2) {
-                        boolean isProject = Defines.LinearLayoutType.PERSON ==((ImageView)((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
+                        boolean isProject = Defines.LinearLayoutType.PERSON == ((ImageView) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
                         if (!isProject) {
                             ll.getChildAt(i).setVisibility(View.GONE);
                             ll.getChildAt(i + 1).setVisibility(View.GONE);
@@ -135,19 +134,18 @@ public class ProjectsActivity extends AppCompatActivity {
                     }
                     break;
             }
-        }
-        else {
+        } else {
             switch (search_option) {
                 case 0:
-                    for(int j = 0; j < ll.getChildCount(); ++j) {
-                        LinearLayout mll = (LinearLayout)ll.getChildAt(j);
+                    for (int j = 0; j < ll.getChildCount(); ++j) {
+                        LinearLayout mll = (LinearLayout) ll.getChildAt(j);
                         for (int i = 0; i < mll.getChildCount(); ++i) {
                             mll.getChildAt(i).setVisibility(View.VISIBLE);
                         }
                     }
                     break;
                 case 1:
-                    for(int j = 0; j < ll.getChildCount(); ++j) {
+                    for (int j = 0; j < ll.getChildCount(); ++j) {
                         LinearLayout mll = (LinearLayout) ll.getChildAt(j);
                         for (int i = 2; i < mll.getChildCount(); i += 2) {
                             boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(i)).getChildAt(0)).isChecked();
@@ -162,7 +160,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     }
                     break;
                 case 2:
-                    for(int j = 0; j < ll.getChildCount(); ++j) {
+                    for (int j = 0; j < ll.getChildCount(); ++j) {
                         LinearLayout mll = (LinearLayout) ll.getChildAt(j);
                         for (int i = 2; i < mll.getChildCount(); i += 2) {
                             boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(i)).getChildAt(0)).isChecked();
@@ -197,7 +195,7 @@ public class ProjectsActivity extends AppCompatActivity {
         mViewPager.setAdapter(mSectionsPagerAdapter);
 
         Defines.SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.PROJECT);
-        mSearchOptions = (Spinner)findViewById(R.id.searchOptions);
+        mSearchOptions = (Spinner) findViewById(R.id.searchOptions);
         mArrayAdapter = new ArrayAdapter<String>(this, R.layout.spinner_item, mCurrentSpinnerList);
         mSearchOptions.setAdapter(mArrayAdapter);
 
@@ -218,7 +216,8 @@ public class ProjectsActivity extends AppCompatActivity {
         //who cares about depreciation anyway
         mViewPager.setOnPageChangeListener(new ViewPager.OnPageChangeListener() {
             @Override
-            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {}
+            public void onPageScrolled(int position, float positionOffset, int positionOffsetPixels) {
+            }
 
             @Override
             public void onPageSelected(int position) {
@@ -233,18 +232,17 @@ public class ProjectsActivity extends AppCompatActivity {
             }
 
             @Override
-            public void onPageScrollStateChanged(int state) {}
+            public void onPageScrollStateChanged(int state) {
+            }
         });
 
         mAuth = FirebaseAuth.getInstance();
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                if(firebaseAuth.getCurrentUser() == null) {
+                if (firebaseAuth.getCurrentUser() == null) {
                     finish();
-                }
-                else
-                {
+                } else {
                     String uid = firebaseAuth.getCurrentUser().getUid();
                     mRootRef = FirebaseDatabase.getInstance().getReference().child("Users").child(uid);
                 }
@@ -254,8 +252,7 @@ public class ProjectsActivity extends AppCompatActivity {
         findViewById(R.id.fab).setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
-                switch(mViewPager.getCurrentItem())
-                {
+                switch (mViewPager.getCurrentItem()) {
                     case Defines.PROJECTS_FRAGMENT:
                         AddNewProjectPerson();
                         break;
@@ -267,29 +264,38 @@ public class ProjectsActivity extends AppCompatActivity {
         });
     }
 
-    public void AddOrEditTask()
-    {
-        AddOrEditTask(null, null, null, null, false);
+    public void AddOrEditTask() {
+        AddOrEditTask(null, null, null, null, false, null);
     }
 
-    public void AddOrEditTask(final String name)
-    {
+    public void AddOrEditTask(final String name) {
         mRootRef.child("Tasks").child(name).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 String date = null, time = null, descr = null;
-                boolean status = Boolean.parseBoolean((String)dataSnapshot.child("Status").getValue());
-                if(dataSnapshot.child("Date").exists()) {
+                boolean status = Boolean.parseBoolean((String) dataSnapshot.child("Status").getValue());
+                ArrayList<String> attachedToList = new ArrayList<String>();
+                if (dataSnapshot.child("Date").exists()) {
                     date = dataSnapshot.child("Date").getValue(String.class);
                 }
-                if(dataSnapshot.child("Time").exists()) {
+                if (dataSnapshot.child("Time").exists()) {
                     time = dataSnapshot.child("Time").getValue(String.class);
                 }
-                if(dataSnapshot.child("Description").exists()) {
+                if (dataSnapshot.child("Description").exists()) {
                     descr = dataSnapshot.child("Description").getValue(String.class);
                 }
+                if(dataSnapshot.child("Projects").exists())
+                {
+                    for(DataSnapshot ds : dataSnapshot.child("Projects").getChildren())
+                        attachedToList.add("Project:" + ds.getKey());
+                }
+                if(dataSnapshot.child("People").exists())
+                {
+                    for(DataSnapshot ds : dataSnapshot.child("People").getChildren())
+                        attachedToList.add("Person:" + ds.getKey());
+                }
 
-                AddOrEditTask(name, date, time, descr, status);
+                AddOrEditTask(name, date, time, descr, status, attachedToList);
             }
 
             @Override
@@ -299,7 +305,7 @@ public class ProjectsActivity extends AppCompatActivity {
         });
     }
 
-    public void AddOrEditTask(final String name, final String date, final String time, final String description, final boolean status) {
+    public void AddOrEditTask(final String name, final String date, final String time, final String description, final boolean status, final ArrayList<String> attachedToList) {
         //build dialog with request for name input
         AlertDialog.Builder builder = new AlertDialog.Builder(ProjectsActivity.this);
         builder.setTitle("Edit task");
@@ -319,13 +325,14 @@ public class ProjectsActivity extends AppCompatActivity {
         timeInput.setKeyListener(null);
         timeInput.setHint("Expire Time");
         timeInput.setText(time != null ? time : "");
-        if(date == null) {
+        if (date == null) {
             timeInput.setVisibility(View.GONE);
         }
+
         timeInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean b) {
-                if(b) {
+                if (b) {
                     Calendar c = Calendar.getInstance();
                     TimePickerDialog tpd = new TimePickerDialog(ProjectsActivity.this, new TimePickerDialog.OnTimeSetListener() {
                         @Override
@@ -346,7 +353,7 @@ public class ProjectsActivity extends AppCompatActivity {
         dateInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
             public void onFocusChange(View view, boolean b) {
-                if(b) {
+                if (b) {
                     Calendar c = Calendar.getInstance();
                     DatePickerDialog dpd = new DatePickerDialog(ProjectsActivity.this, new DatePickerDialog.OnDateSetListener() {
                         @Override
@@ -371,6 +378,20 @@ public class ProjectsActivity extends AppCompatActivity {
         descriptionInput.setText(description != null ? description : "");
         ll.addView(descriptionInput);
 
+        final LinearLayout attachToLL = new LinearLayout(ProjectsActivity.this);
+        attachToLL.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+        attachToLL.setOrientation(LinearLayout.VERTICAL);
+        attachToLL.setGravity(Gravity.CENTER);
+        if(attachedToList != null)
+        {
+            for(String text : attachedToList)
+            {
+                attachToLL.addView(ViewFactory.attachToEditTextFactory(ProjectsActivity.this, mRootRef, attachToLL, text));
+            }
+        }
+        attachToLL.addView(ViewFactory.attachToEditTextFactory(ProjectsActivity.this, mRootRef, attachToLL));
+        ll.addView(attachToLL);
+
         builder.setView(ll);
 
         //set on 'ok' listener
@@ -378,10 +399,9 @@ public class ProjectsActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String enteredName = nameInput.getText().toString();
-                if(!enteredName.isEmpty()) {
+                if (!enteredName.isEmpty()) {
                     DatabaseReference child = mRootRef.child("Tasks");
-                    if(name != null && !enteredName.equals(name))
-                    {
+                    if (name != null && !enteredName.equals(name)) {
                         child.child(name).removeValue();
                     }
                     child = child.child(enteredName);
@@ -391,6 +411,21 @@ public class ProjectsActivity extends AppCompatActivity {
                     data.put("Description", descriptionInput.getText().toString());
                     data.put("Time", timeInput.getText().toString());
                     child.setValue(data);
+
+                    for(int i = 0; i < attachToLL.getChildCount() - 1; ++i)
+                    {
+                        String text = ((EditText)attachToLL.getChildAt(i)).getText().toString();
+                        String parts[] = text.split(":");
+                        if(parts[0].equals("Person")) {
+                            child.child("People").child(parts[1]).setValue(true);
+                            child = child.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(parts[1]).child("Tasks").child(enteredName);
+                            child.setValue(true);
+                        }
+                        else {
+                            child.child("Projects").child(parts[1]).setValue(true);
+                            child.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Projects").child(parts[1]).child("Tasks").child(enteredName).setValue(true);
+                        }
+                    }
                 }
             }
         });
@@ -489,7 +524,7 @@ public class ProjectsActivity extends AppCompatActivity {
 
     @Override
     protected void onRestart() {
-        ((LinearLayout)findViewById(R.id.myLinearLayout)).removeAllViews();
+        ((LinearLayout) findViewById(R.id.myLinearLayout)).removeAllViews();
         super.onRestart();
     }
 
@@ -515,7 +550,7 @@ public class ProjectsActivity extends AppCompatActivity {
                 .setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View v) {
-                        searchView.setQuery("",false);
+                        searchView.setQuery("", false);
                         searchView.setIconified(true);
 
                         HideItemsBySearchOptions(mSearchOptions.getSelectedItemPosition());
@@ -541,38 +576,30 @@ public class ProjectsActivity extends AppCompatActivity {
         return super.onOptionsItemSelected(item);
     }
 
-    private void HideAllNonMatches(String text)
-    {
+    private void HideAllNonMatches(String text) {
         LinearLayout ll = mSectionsPagerAdapter.getFragment(mViewPager.getCurrentItem()).GetLinearLayout();
-        for(int i = 0; i < ll.getChildCount(); i+=2)
-        {
-            String llText = ((TextView)((LinearLayout)ll.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-            if(text == null || llText.contains(text))
-            {
+        for (int i = 0; i < ll.getChildCount(); i += 2) {
+            String llText = ((TextView) ((LinearLayout) ll.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+            if (text == null || llText.contains(text)) {
                 ll.getChildAt(i).setVisibility(View.VISIBLE);
-                ll.getChildAt(i+1).setVisibility(View.VISIBLE);
-            }
-            else
-            {
+                ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+            } else {
                 ll.getChildAt(i).setVisibility(View.GONE);
-                ll.getChildAt(i+1).setVisibility(View.GONE);
+                ll.getChildAt(i + 1).setVisibility(View.GONE);
             }
         }
     }
 
     @Override
-    public boolean onContextItemSelected(MenuItem item)
-    {
-        switch(item.getItemId())
-        {
+    public boolean onContextItemSelected(MenuItem item) {
+        switch (item.getItemId()) {
             case 1:
                 last_context_selected.callOnClick();
                 break;
             case 2:
-                String key = ((TextView)((LinearLayout)last_context_selected).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                String key = ((TextView) ((LinearLayout) last_context_selected).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
                 DatabaseReference child = null;
-                switch ((Defines.LinearLayoutType)last_context_selected.getTag())
-                {
+                switch ((Defines.LinearLayoutType) last_context_selected.getTag()) {
                     case PERSON:
                         child = mRootRef.child("People");
                         break;
@@ -590,13 +617,13 @@ public class ProjectsActivity extends AppCompatActivity {
     }
 
     private View last_context_selected;
+
     @Override
     public void onCreateContextMenu(ContextMenu menu,
                                     View view,
-                                    ContextMenu.ContextMenuInfo info)
-    {
+                                    ContextMenu.ContextMenuInfo info) {
         last_context_selected = view;
-        if(view instanceof LinearLayout) {
+        if (view instanceof LinearLayout) {
             menu.setHeaderTitle("Choose an action");
             menu.add(Menu.NONE, 1, Menu.NONE, "Open");
             menu.add(Menu.NONE, 2, Menu.NONE, "Delete");
@@ -617,12 +644,12 @@ public class ProjectsActivity extends AppCompatActivity {
         private FirebaseAuth.AuthStateListener mAuthStateListener;
         private DatabaseReference mRootRef;
 
-        public LinearLayout GetLinearLayout()
-        {
+        public LinearLayout GetLinearLayout() {
             return mLinearLayout;
         }
 
-        public ActivityFragment() {}
+        public ActivityFragment() {
+        }
 
         public static ActivityFragment newInstance(int sectionNumber) {
             ActivityFragment fragment = new ActivityFragment();
@@ -636,13 +663,13 @@ public class ProjectsActivity extends AppCompatActivity {
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View rootView = inflater.inflate(R.layout.fragment_projects, container, false);
-            mLinearLayout = (LinearLayout)rootView.findViewById(R.id.myLinearLayout);
+            mLinearLayout = (LinearLayout) rootView.findViewById(R.id.myLinearLayout);
 
             mAuth = FirebaseAuth.getInstance();
             mAuthStateListener = new FirebaseAuth.AuthStateListener() {
                 @Override
                 public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                    if(firebaseAuth.getCurrentUser() != null) {
+                    if (firebaseAuth.getCurrentUser() != null) {
                         String uid = firebaseAuth.getCurrentUser().getUid();
                         mRootRef = FirebaseDatabase.getInstance().getReference().child("Users").child(uid);
                         switch (getArguments().getInt(ARG_SECTION_NUMBER) - 1) {
@@ -678,11 +705,11 @@ public class ProjectsActivity extends AppCompatActivity {
             if (mAuthStateListener != null) {
                 mAuth.removeAuthStateListener(mAuthStateListener);
             }
-            if(peopleCEV != null)
+            if (peopleCEV != null)
                 mRootRef.child("People").removeEventListener(peopleCEV);
-            if(projectsCEV != null)
+            if (projectsCEV != null)
                 mRootRef.child("Projects").removeEventListener(projectsCEV);
-            if(tasksCEV != null)
+            if (tasksCEV != null)
                 mRootRef.child("Tasks").removeEventListener(tasksCEV);
         }
 
@@ -690,8 +717,7 @@ public class ProjectsActivity extends AppCompatActivity {
         private ChildEventListener peopleCEV = null;
         private ChildEventListener projectsCEV = null;
 
-        private void SetUpProjectsPersonList(DatabaseReference dr)
-        {
+        private void SetUpProjectsPersonList(DatabaseReference dr) {
             projectsCEV = dr.child("Projects").addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
@@ -747,14 +773,13 @@ public class ProjectsActivity extends AppCompatActivity {
             });
         }
 
-        private void SetUpTaskList(DatabaseReference dr)
-        {
+        private void SetUpTaskList(DatabaseReference dr) {
             tasksCEV = dr.child("Tasks").addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
                     String name = dataSnapshot.getKey();
-                    boolean status = Boolean.parseBoolean((String)dataSnapshot.child("Status").getValue());
-                    String date = (String)dataSnapshot.child("Date").getValue();
+                    boolean status = Boolean.parseBoolean((String) dataSnapshot.child("Status").getValue());
+                    String date = (String) dataSnapshot.child("Date").getValue();
                     PrepareToAddTask(name, status, date);
                 }
 
@@ -779,17 +804,15 @@ public class ProjectsActivity extends AppCompatActivity {
             });
         }
 
-        void ChangeCheckBoxStatus(String name, boolean newStatus)
-        {
+        void ChangeCheckBoxStatus(String name, boolean newStatus) {
             int i = FindLinearLayoutByText(name);
-            ((CheckBox)((LinearLayout)mLinearLayout.getChildAt(i)).getChildAt(0)).setChecked(newStatus);
+            ((CheckBox) ((LinearLayout) mLinearLayout.getChildAt(i)).getChildAt(0)).setChecked(newStatus);
         }
 
-        private void PrepareToAddTask(String name, boolean status, String date)
-        {
+        private void PrepareToAddTask(String name, boolean status, String date) {
             Defines.TaskType tt = Defines.TaskType.OTHER;
 
-            if(!date.isEmpty()) {
+            if (!date.isEmpty()) {
                 String[] parts = date.split("\\.");
 
                 String s = parts[0];
@@ -812,8 +835,7 @@ public class ProjectsActivity extends AppCompatActivity {
             AddItem(name, status, tt);
         }
 
-        private void AddItem(String name, boolean checkBoxStatus, Defines.TaskType tt)
-        {
+        private void AddItem(String name, boolean checkBoxStatus, Defines.TaskType tt) {
             final LinearLayout ll = ViewFactory.linearLayoutFactory(getActivity(), name, checkBoxStatus);
 
             ll.setOnLongClickListener(new View.OnLongClickListener() {
@@ -828,23 +850,22 @@ public class ProjectsActivity extends AppCompatActivity {
             ll.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    String name = ((TextView)((LinearLayout)view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-                    ((ProjectsActivity)getActivity()).AddOrEditTask(name);
+                    String name = ((TextView) ((LinearLayout) view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                    ((ProjectsActivity) getActivity()).AddOrEditTask(name);
                 }
             });
 
 
-            ((CheckBox)ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            ((CheckBox) ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
                 public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                    String name = (String)((CheckBox)ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).getTag();
+                    String name = (String) ((CheckBox) ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).getTag();
                     mRootRef.child("Tasks").child(name).child("Status").setValue(String.valueOf(b));
-                    ((ProjectsActivity)getActivity()).RefreshCurrentFragment();
+                    ((ProjectsActivity) getActivity()).RefreshCurrentFragment();
                 }
             });
 
-            switch (tt)
-            {
+            switch (tt) {
                 case TODAY:
                     AddTaskToLL(ll, mTodayTasks);
                     break;
@@ -860,28 +881,25 @@ public class ProjectsActivity extends AppCompatActivity {
             }
         }
 
-        private void CheckIfLLIsEmpty(LinearLayout ll)
-        {
-            if(ll.getChildCount() == 2)
+        private void CheckIfLLIsEmpty(LinearLayout ll) {
+            if (ll.getChildCount() == 2)
                 ll.setVisibility(View.GONE);
         }
 
-        private void AddTaskToLL(LinearLayout task, LinearLayout whereAdd)
-        {
+        private void AddTaskToLL(LinearLayout task, LinearLayout whereAdd) {
             whereAdd.addView(task);
             whereAdd.addView(ViewFactory.horizontalDividerFactory(getActivity()));
             whereAdd.setVisibility(View.VISIBLE);
         }
 
-        private void AddItem(String name, Defines.LinearLayoutType llt)
-        {
+        private void AddItem(String name, Defines.LinearLayoutType llt) {
             LinearLayout ll = ViewFactory.linearLayoutFactory(getActivity(), name, llt);
 
             ll.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View view) {
-                    Intent intent = new Intent(getActivity(), ((Defines.LinearLayoutType)view.getTag() == Defines.LinearLayoutType.PERSON ? ProfileView.class : ProjectsView.class ));
-                    String extraInfo = ((TextView)((LinearLayout)view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                    Intent intent = new Intent(getActivity(), ((Defines.LinearLayoutType) view.getTag() == Defines.LinearLayoutType.PERSON ? ProfileView.class : ProjectsView.class));
+                    String extraInfo = ((TextView) ((LinearLayout) view).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
                     intent.putExtra(Defines.INFO_TAG, extraInfo);
                     startActivity(intent);
                 }
@@ -900,15 +918,12 @@ public class ProjectsActivity extends AppCompatActivity {
             mLinearLayout.addView(ViewFactory.horizontalDividerFactory(getActivity()));
         }
 
-        private void RemoveTaskByText(String text)
-        {
-            for(int i = 0; i < mLinearLayout.getChildCount(); ++i)
-            {
-                LinearLayout mll = (LinearLayout)mLinearLayout.getChildAt(i);
-                for(int j = 2; j < mll.getChildCount(); j += Defines.ITEM_SIZE_IN_VIEWS)
-                {
-                    String textViewText = ((TextView)((LinearLayout)mll.getChildAt(j)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-                    if(textViewText.equals(text)) {
+        private void RemoveTaskByText(String text) {
+            for (int i = 0; i < mLinearLayout.getChildCount(); ++i) {
+                LinearLayout mll = (LinearLayout) mLinearLayout.getChildAt(i);
+                for (int j = 2; j < mll.getChildCount(); j += Defines.ITEM_SIZE_IN_VIEWS) {
+                    String textViewText = ((TextView) ((LinearLayout) mll.getChildAt(j)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                    if (textViewText.equals(text)) {
                         mll.removeViews(j, 2);
                         CheckIfLLIsEmpty(mll);
                         return;
@@ -917,20 +932,17 @@ public class ProjectsActivity extends AppCompatActivity {
             }
         }
 
-        private void RemovePersonOrProject(String name)
-        {
+        private void RemovePersonOrProject(String name) {
             int position = FindLinearLayoutByText(name);
             mLinearLayout.removeViews(position, Defines.ITEM_SIZE_IN_VIEWS);
         }
 
-        private int FindLinearLayoutByText(String text)
-        {
+        private int FindLinearLayoutByText(String text) {
             int childCount = mLinearLayout.getChildCount();
             int i;
-            for(i = 0; i < childCount; i += Defines.ITEM_SIZE_IN_VIEWS)
-            {
-                String llText =((TextView)((LinearLayout)mLinearLayout.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-                if(llText.equals(text)) {
+            for (i = 0; i < childCount; i += Defines.ITEM_SIZE_IN_VIEWS) {
+                String llText = ((TextView) ((LinearLayout) mLinearLayout.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                if (llText.equals(text)) {
                     break;
                 }
             }
@@ -960,7 +972,7 @@ public class ProjectsActivity extends AppCompatActivity {
 
         @Override
         public Object instantiateItem(ViewGroup container, int position) {
-            ActivityFragment fragment = (ActivityFragment)super.instantiateItem(container, position);
+            ActivityFragment fragment = (ActivityFragment) super.instantiateItem(container, position);
             mFragments.put(position, fragment);
             return fragment;
         }
@@ -971,8 +983,7 @@ public class ProjectsActivity extends AppCompatActivity {
             super.destroyItem(container, position, object);
         }
 
-        public ActivityFragment getFragment(int position)
-        {
+        public ActivityFragment getFragment(int position) {
             return mFragments.get(position);
         }
 
