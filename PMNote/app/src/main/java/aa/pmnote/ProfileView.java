@@ -193,7 +193,7 @@ public class ProfileView extends AppCompatActivity
                 String title = "Warning !";
                 String message = "Do you want to change profile image?";
                 String button1String = "Yes";
-                String button2String = "Cencel";
+                String button2String = "Cancel";
 
                 ad = new AlertDialog.Builder(ProfileView.this);
                 ad.setTitle(title);  // заголовок
@@ -205,20 +205,18 @@ public class ProfileView extends AppCompatActivity
                                 .setAction(Intent.ACTION_GET_CONTENT);
 
                         startActivityForResult(Intent.createChooser(intent, "Select a picture"), IMPORT_PICTURE);
-
-
                     }
                 });
                 ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int arg1) {
-                        Toast.makeText(ProfileView.this, "Cenceled",
+                        Toast.makeText(ProfileView.this, "Canceled",
                                 Toast.LENGTH_LONG).show();
                     }
                 });
                 ad.setCancelable(true);
                 ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
                     public void onCancel(DialogInterface dialog) {
-                        Toast.makeText(ProfileView.this, "Cenceled",
+                        Toast.makeText(ProfileView.this, "Canceled",
                                 Toast.LENGTH_LONG).show();
                     }}
                 );
@@ -232,6 +230,7 @@ public class ProfileView extends AppCompatActivity
     protected void onStart() {
         super.onStart();
         mAuth.addAuthStateListener(mAuthStateListener);
+
     }
 
     @Override
@@ -244,9 +243,6 @@ public class ProfileView extends AppCompatActivity
             mRootRef.child("Widgets").removeEventListener(widgetsCEL);
         if(projectsCEL != null)
            mRootRef.child("Projects").removeEventListener(projectsCEL);
-
-        finish();
-        startActivity(getIntent());
     }
 
     @Override
@@ -266,6 +262,8 @@ public class ProfileView extends AppCompatActivity
                             // Get a URL to the uploaded content
                             Uri downloadUrl = taskSnapshot.getDownloadUrl();
                             ImageView imageView =  (ImageView) findViewById(R.id.avatar);
+                            finish();
+                            startActivity(getIntent());
                             Glide.with(ProfileView.this).load(downloadUrl.toString()).into(imageView);
                         }
                     })
@@ -273,9 +271,10 @@ public class ProfileView extends AppCompatActivity
                         @Override
                         public void onFailure(@NonNull Exception exception) {
                             // Handle unsuccessful uploads
+                            finish();
+                            startActivity(getIntent());
                             Toast.makeText(ProfileView.this, "Upload faild",
                                     Toast.LENGTH_LONG).show();
-
                         }
                     });
 
@@ -318,7 +317,7 @@ public class ProfileView extends AppCompatActivity
             String title = "Warning !";
             String message = "Do you really want to delete this profile?";
             String button1String = "Yes";
-            String button2String = "Cencel";
+            String button2String = "Cancel";
 
             ad = new AlertDialog.Builder(ProfileView.this);
             ad.setTitle(title);  // заголовок
@@ -331,14 +330,14 @@ public class ProfileView extends AppCompatActivity
             });
             ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int arg1) {
-                    Toast.makeText(ProfileView.this, "Cenceled",
+                    Toast.makeText(ProfileView.this, "Canceled",
                             Toast.LENGTH_LONG).show();
                 }
             });
             ad.setCancelable(true);
             ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
                 public void onCancel(DialogInterface dialog) {
-                    Toast.makeText(ProfileView.this, "Cenceled",
+                    Toast.makeText(ProfileView.this, "Canceled",
                             Toast.LENGTH_LONG).show();
                 }}
             );
@@ -604,7 +603,7 @@ public class ProfileView extends AppCompatActivity
             String title = "Warning !";
             String message = "Do you really want to delete this widget?";
             String button1String = "Yes";
-            String button2String = "Cencel";
+            String button2String = "Cancel";
 
             ad = new AlertDialog.Builder(ProfileView.this);
             ad.setTitle(title);  // заголовок
@@ -619,14 +618,14 @@ public class ProfileView extends AppCompatActivity
             });
             ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
                 public void onClick(DialogInterface dialog, int arg1) {
-                    Toast.makeText(ProfileView.this, "Cenceled",
+                    Toast.makeText(ProfileView.this, "Canceled",
                             Toast.LENGTH_LONG).show();
                 }
             });
             ad.setCancelable(true);
             ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
                 public void onCancel(DialogInterface dialog) {
-                    Toast.makeText(ProfileView.this, "Cenceled",
+                    Toast.makeText(ProfileView.this, "Canceled",
                             Toast.LENGTH_LONG).show();
                 }}
             );
@@ -737,7 +736,7 @@ public class ProfileView extends AppCompatActivity
                 String title = "Warning !";
                 String message = "Do you really want to delete this widget?";
                 String button1String = "Yes";
-                String button2String = "Cencel";
+                String button2String = "Cancel";
 
                 ad = new AlertDialog.Builder(ProfileView.this);
                 ad.setTitle(title);  // заголовок
@@ -751,14 +750,14 @@ public class ProfileView extends AppCompatActivity
                 });
                 ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int arg1) {
-                        Toast.makeText(ProfileView.this, "Cenceled",
+                        Toast.makeText(ProfileView.this, "Canceled",
                                 Toast.LENGTH_LONG).show();
                     }
                 });
                 ad.setCancelable(true);
                 ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
                     public void onCancel(DialogInterface dialog) {
-                        Toast.makeText(ProfileView.this, "Cenceled",
+                        Toast.makeText(ProfileView.this, "Canceled",
                                 Toast.LENGTH_LONG).show();
                     }}
                 );
@@ -896,7 +895,7 @@ public class ProfileView extends AppCompatActivity
                 String title = "Warning !";
                 String message = "Do you really want to delete this widget?";
                 String button1String = "Yes";
-                String button2String = "Cencel";
+                String button2String = "Cancel";
 
                 ad = new AlertDialog.Builder(ProfileView.this);
                 ad.setTitle(title);  // заголовок
@@ -911,14 +910,14 @@ public class ProfileView extends AppCompatActivity
                 });
                 ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int arg1) {
-                        Toast.makeText(ProfileView.this, "Cenceled",
+                        Toast.makeText(ProfileView.this, "Canceled",
                                 Toast.LENGTH_LONG).show();
                     }
                 });
                 ad.setCancelable(true);
                 ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
                     public void onCancel(DialogInterface dialog) {
-                        Toast.makeText(ProfileView.this, "Cenceled",
+                        Toast.makeText(ProfileView.this, "Canceled",
                                 Toast.LENGTH_LONG).show();
                     }}
                 );
@@ -1079,7 +1078,7 @@ public class ProfileView extends AppCompatActivity
                 String title = "Warning !";
                 String message = "Do you really want to delete this widget?";
                 String button1String = "Yes";
-                String button2String = "Cencel";
+                String button2String = "Cancel";
 
                 ad = new AlertDialog.Builder(ProfileView.this);
                 ad.setTitle(title);  // заголовок
@@ -1094,14 +1093,14 @@ public class ProfileView extends AppCompatActivity
                 });
                 ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int arg1) {
-                        Toast.makeText(ProfileView.this, "Cenceled",
+                        Toast.makeText(ProfileView.this, "Canceled",
                                 Toast.LENGTH_LONG).show();
                     }
                 });
                 ad.setCancelable(true);
                 ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
                     public void onCancel(DialogInterface dialog) {
-                        Toast.makeText(ProfileView.this, "Cenceled",
+                        Toast.makeText(ProfileView.this, "Canceled",
                                 Toast.LENGTH_LONG).show();
                     }}
                     );
