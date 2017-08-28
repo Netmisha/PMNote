@@ -244,6 +244,9 @@ public class ProfileView extends AppCompatActivity
             mRootRef.child("Widgets").removeEventListener(widgetsCEL);
         if(projectsCEL != null)
            mRootRef.child("Projects").removeEventListener(projectsCEL);
+
+        finish();
+        startActivity(getIntent());
     }
 
     @Override
