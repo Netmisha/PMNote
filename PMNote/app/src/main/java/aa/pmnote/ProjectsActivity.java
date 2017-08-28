@@ -320,7 +320,8 @@ public class ProjectsActivity extends AppCompatActivity {
         InputFilter nameFilter = new InputFilter() {
             public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
                 for (int i = start;i < end;i++) {
-                    if (!Character.isLetterOrDigit(source.charAt(i)) && !Character.toString(source.charAt(i)).equals("_") && !Character.toString(source.charAt(i)).equals("-")) {
+                    if (!Character.isLetterOrDigit(source.charAt(i)) && !Character.toString(source.charAt(i)).equals("_") && !Character.toString(source.charAt(i)).equals("-")
+                            && !Character.toString(source.charAt(i)).equals(" ")) {
                         return "";
                     }
                 }
@@ -412,34 +413,67 @@ public class ProjectsActivity extends AppCompatActivity {
         builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialog, int which) {
-                String enteredName = nameInput.getText().toString();
+                final String enteredName = nameInput.getText().toString();
                 if (!enteredName.isEmpty()) {
-                    DatabaseReference child = mRootRef.child("Tasks");
+                    final DatabaseReference child = mRootRef.child("Tasks");
                     if (name != null && !enteredName.equals(name)) {
                         child.child(name).removeValue();
                     }
-                    child = child.child(enteredName);
-                    Map<String, String> data = new HashMap<String, String>();
-                    data.put("Status", String.valueOf(status));
-                    data.put("Date", dateInput.getText().toString());
-                    data.put("Description", descriptionInput.getText().toString());
-                    data.put("Time", timeInput.getText().toString());
-                    child.setValue(data);
 
-                    for(int i = 0; i < attachToLL.getChildCount() - 1; ++i)
-                    {
-                        String text = ((EditText)attachToLL.getChildAt(i)).getText().toString();
-                        String parts[] = text.split(":");
-                        if(parts[0].equals("Person")) {
-                            child.child("People").child(parts[1]).setValue(true);
-                            child = child.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(parts[1]).child("Tasks").child(enteredName);
-                            child.setValue(true);
+                    child.child(enteredName).child("People").addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            for(DataSnapshot ds : dataSnapshot.getChildren())
+                            {
+                                child.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(ds.getKey()).child("Tasks").child(enteredName).removeValue();
+                            }
+                            child.child(enteredName).child("People");
+                            child.child(enteredName).child("Projects").addListenerForSingleValueEvent(new ValueEventListener() {
+                                @Override
+                                public void onDataChange(DataSnapshot dataSnapshot) {
+                                    for(DataSnapshot ds : dataSnapshot.getChildren())
+                                    {
+                                        child.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Projects").child(ds.getKey()).child("Tasks").child(enteredName).removeValue();
+                                    }
+                                    child.child(enteredName).child("Projects");
+
+                                    Map<String, String> data = new HashMap<String, String>();
+                                    data.put("Status", String.valueOf(status));
+                                    data.put("Date", dateInput.getText().toString());
+                                    data.put("Description", descriptionInput.getText().toString());
+                                    data.put("Time", timeInput.getText().toString());
+                                    child.child(enteredName).setValue(data);
+
+                                    for(int i = 0; i < attachToLL.getChildCount() - 1; ++i)
+                                    {
+                                        DatabaseReference taskRef = child.child(enteredName);
+                                        String text = ((EditText)attachToLL.getChildAt(i)).getText().toString();
+                                        String parts[] = text.split(":");
+                                        if(parts[0].equals("Person")) {
+                                            taskRef.child("People").child(parts[1]).setValue(true);
+                                            taskRef = taskRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(parts[1]).child("Tasks").child(enteredName);
+                                            taskRef.setValue(true);
+                                        }
+                                        else {
+                                            taskRef.child("Projects").child(parts[1]).setValue(true);
+                                            taskRef.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Projects").child(parts[1]).child("Tasks").child(enteredName).setValue(true);
+                                        }
+                                    }
+                                }
+
+                                @Override
+                                public void onCancelled(DatabaseError databaseError) {
+
+                                }
+                            });
                         }
-                        else {
-                            child.child("Projects").child(parts[1]).setValue(true);
-                            child.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Projects").child(parts[1]).child("Tasks").child(enteredName).setValue(true);
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+
                         }
-                    }
+                    });
+
                 }
             }
         });
@@ -469,7 +503,8 @@ public class ProjectsActivity extends AppCompatActivity {
         InputFilter nameFilter = new InputFilter() {
             public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
                 for (int i = start;i < end;i++) {
-                    if (!Character.isLetterOrDigit(source.charAt(i)) && !Character.toString(source.charAt(i)).equals("_") && !Character.toString(source.charAt(i)).equals("-")) {
+                    if (!Character.isLetterOrDigit(source.charAt(i)) && !Character.toString(source.charAt(i)).equals("_") && !Character.toString(source.charAt(i)).equals("-")
+                        && !Character.toString(source.charAt(i)).equals(" ")) {
                         return "";
                     }
                 }
@@ -623,20 +658,71 @@ public class ProjectsActivity extends AppCompatActivity {
                 last_context_selected.callOnClick();
                 break;
             case 2:
-                String key = ((TextView) ((LinearLayout) last_context_selected).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-                DatabaseReference child = null;
+                final String key = ((TextView) ((LinearLayout) last_context_selected).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
                 switch ((Defines.LinearLayoutType) last_context_selected.getTag()) {
                     case PERSON:
-                        child = mRootRef.child("People");
+                        final DatabaseReference childPeople = mRootRef.child("People").child(key);
+                        childPeople.addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                for (DataSnapshot ds : dataSnapshot.child("Projects").getChildren()) {
+                                    childPeople.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Projects").child(ds.getKey()).child("People").child(key).removeValue();
+                                }
+                                for (DataSnapshot ds : dataSnapshot.child("Tasks").getChildren())
+                                {
+                                    childPeople.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks").child(ds.getKey()).child("People").child(key).removeValue();
+                                }
+                                childPeople.removeValue();
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+
+                            }
+                        });
                         break;
                     case PROJECT:
-                        child = mRootRef.child("Projects");
+                        final DatabaseReference childProjects = mRootRef.child("Projects").child(key);
+                        childProjects.addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                for (DataSnapshot ds : dataSnapshot.child("People").getChildren()) {
+                                    childProjects.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(ds.getKey()).child("Projects").child(key).removeValue();
+                                }
+                                for (DataSnapshot ds : dataSnapshot.child("Tasks").getChildren())
+                                {
+                                    childProjects.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks").child(ds.getKey()).child("Projects").child(key).removeValue();
+                                }
+                                childProjects.removeValue();
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+
+                            }
+                        });
                         break;
                     case TASK:
-                        child = mRootRef.child("Tasks");
-                        break;
+                        final DatabaseReference childTasks = mRootRef.child("Tasks").child(key);
+                        childTasks.addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                for (DataSnapshot ds : dataSnapshot.child("People").getChildren()) {
+                                    childTasks.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("People").child(ds.getKey()).child("Tasks").child(key).removeValue();
+                                }
+                                for (DataSnapshot ds : dataSnapshot.child("Projects").getChildren())
+                                {
+                                    childTasks.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Projects").child(ds.getKey()).child("Tasks").child(key).removeValue();
+                                }
+                                childTasks.removeValue();
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+
+                            }
+                        });
                 }
-                child.child(key).removeValue();
                 break;
         }
         return super.onContextItemSelected(item);
