@@ -1,6 +1,9 @@
 package aa.pmnote;
 ;
 import com.bumptech.glide.Glide;
+
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
@@ -16,6 +19,7 @@ import android.text.Html;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
+import android.view.Gravity;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -26,8 +30,10 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.Button;
 import android.widget.CompoundButton;
+import android.widget.DatePicker;
 import android.widget.ImageView;
 import android.widget.Space;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
 import android.widget.SeekBar;
@@ -60,9 +66,14 @@ import com.google.firebase.storage.UploadTask;
 import aa.pmnote.CustomAdapter;import aa.pmnote.R;
 
 import java.io.File;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Calendar;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -138,7 +149,7 @@ public class ProfileView extends AppCompatActivity
 
 
                 AlertDialog.Builder builder;
-                final String[] mItemsName = {"Note", "Checkbox", "Slider",  "Combobox", "Spinbox", "Add Task", "Assign Task"};
+                final String[] mItemsName = {"Note", "Checkbox", "Slider",  "Combobox", "Spinbox", "Add Task"};
 
                 builder = new AlertDialog.Builder(ProfileView.this);
                 builder.setTitle("Add ..."); // tite
@@ -160,6 +171,9 @@ public class ProfileView extends AppCompatActivity
                                 addCombobox();
                                 break;
                             case "Spinbox":
+                                break;
+                            case "Add Task":
+                                AddOrEditTask();
                                 break;
                         }
                     }
@@ -1269,6 +1283,80 @@ public class ProfileView extends AppCompatActivity
 
             }
         });
+        mRootRef.child("Tasks").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot3, String s) {
+                final DataSnapshot dataSnapshot = dataSnapshot3;
+                final String key = dataSnapshot.getKey();
+                mRootRef.getRoot().child("Users").child(uid).child("Tasks").child(key).addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot2) {
+                        CheckBox task = new CheckBox(ProfileView.this);
+                        task.setChecked(Boolean.parseBoolean(dataSnapshot2.child("Status").getValue(String.class)));
+                        task.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                            @Override
+                            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                                if (b)
+                                {
+                                    mRootRef.getRoot().child("Users").child(uid).child("Tasks").child(key).child("Status").setValue("true");
+                                    mRootRef.child("Tasks").child(key).setValue(true);
+
+                                }
+                                else
+                                {
+                                    mRootRef.getRoot().child("Users").child(uid).child("Tasks").child(key).child("Status").setValue("false");
+                                    mRootRef.child("Tasks").child(key).setValue(false);
+                                }
+                            }
+                        });
+                        task.setOnLongClickListener(new View.OnLongClickListener() {
+                            @Override
+                            public boolean onLongClick(View view) {
+                                AddOrEditTask(key);
+                                return true;
+                            }
+                        });
+                        task.setText(dataSnapshot.getKey());
+                        task.setTextColor(Color.BLACK);
+                        task.setTextSize(20);
+                        LinearLayout ll = (LinearLayout) findViewById(R.id.tasks_layout);
+                        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.MATCH_PARENT,
+                                LinearLayout.LayoutParams.WRAP_CONTENT);
+
+                        ll.addView(task, lp);
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+                });
+
+
+
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
     }
 
 
@@ -1285,8 +1373,154 @@ public class ProfileView extends AppCompatActivity
                 Glide.with(ProfileView.this).load(uri.toString()).into(image);
             }
         });
+    }
 
+    public void AddOrEditTask()
+    {
+        AddOrEditTask(null, null, null, null, false);
+    }
+
+    public void AddOrEditTask(final String name)
+    {
+        mRootRef.getRoot().child("Users").child(uid).child("Tasks").child(name).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                String date = null, time = null, descr = null;
+                boolean status = Boolean.parseBoolean(dataSnapshot.child("Status").getValue(String.class));
+                if(dataSnapshot.child("Date").exists()) {
+                    date = dataSnapshot.child("Date").getValue(String.class);
+                }
+                if(dataSnapshot.child("Time").exists()) {
+                    time = dataSnapshot.child("Time").getValue(String.class);
+                }
+                if(dataSnapshot.child("Description").exists()) {
+                    descr = dataSnapshot.child("Description").getValue(String.class);
+                }
+
+                AddOrEditTask(name, date, time, descr, status);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    public void AddOrEditTask(final String name, final String date, final String time, final String description, final boolean status) {
+        //build dialog with request for name input
+        android.support.v7.app.AlertDialog.Builder builder = new android.support.v7.app.AlertDialog.Builder(ProfileView.this);
+        builder.setTitle("Edit task");
+
+        final LinearLayout ll = new LinearLayout(ProfileView.this);
+        ll.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+        ll.setOrientation(LinearLayout.VERTICAL);
+        ll.setGravity(Gravity.CENTER);
+
+        final EditText nameInput = new EditText(ProfileView.this);
+        nameInput.setInputType(InputType.TYPE_CLASS_TEXT);
+        nameInput.setHint("Name");
+        nameInput.setText(name != null ? name : "");
+        ll.addView(nameInput);
+
+        final EditText timeInput = new EditText(ProfileView.this);
+        timeInput.setKeyListener(null);
+        timeInput.setHint("Expire Time");
+        timeInput.setText(time != null ? time : "");
+        if(date == null) {
+            timeInput.setVisibility(View.GONE);
+        }
+        timeInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if(b) {
+                    Calendar c = Calendar.getInstance();
+                    TimePickerDialog tpd = new TimePickerDialog(ProfileView.this, new TimePickerDialog.OnTimeSetListener() {
+                        @Override
+                        public void onTimeSet(TimePicker timePicker, int hour, int minute) {
+                            timeInput.setText(hour + ":" + minute);
+                        }
+                    }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true);
+                    tpd.setTitle("Pick deadline time");
+                    tpd.show();
+                }
+            }
+        });
+
+        final EditText dateInput = new EditText(ProfileView.this);
+        dateInput.setKeyListener(null);
+        dateInput.setHint("Expire Date");
+        dateInput.setText(date != null ? date : "");
+        dateInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if(b) {
+                    Calendar c = Calendar.getInstance();
+                    DatePickerDialog dpd = new DatePickerDialog(ProfileView.this, new DatePickerDialog.OnDateSetListener() {
+                        @Override
+                        public void onDateSet(DatePicker datePicker, int year, int month, int day) {
+                            Calendar date = Calendar.getInstance();
+                            date.set(year, month, day);
+                            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.ENGLISH);
+                            dateInput.setText(sdf.format(date.getTime()));
+                            timeInput.setVisibility(View.VISIBLE);
+                        }
+                    }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DATE));
+                    dpd.setTitle("Pick deadline date.");
+                    dpd.show();
+                }
+            }
+        });
+        ll.addView(dateInput);
+        ll.addView(timeInput);
+
+        final EditText descriptionInput = new EditText(ProfileView.this);
+        descriptionInput.setHint("Description");
+        descriptionInput.setText(description != null ? description : "");
+        ll.addView(descriptionInput);
+
+        builder.setView(ll);
+
+        //set on 'ok' listener
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String enteredName = nameInput.getText().toString();
+                if(!enteredName.isEmpty()) {
+                    DatabaseReference child = mRootRef.child("Tasks");
+                    if(name != null && !enteredName.equals(name))
+                    {
+                        child.child(name).removeValue();
+                    }
+
+                    child.child(enteredName).setValue(status);
+
+                    child = child.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks").child(enteredName);
+
+                    Map<String, String> data = new HashMap<String, String>();
+                    data.put("Status", String.valueOf(status));
+                    data.put("Date", dateInput.getText().toString());
+                    data.put("Description", descriptionInput.getText().toString());
+                    data.put("Time", timeInput.getText().toString());
+                    child.setValue(data);
+
+                    child.child("People").child(mName).setValue(true);
+
+                }
+            }
+        });
+
+        //set on 'cancel' listener
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        //show dialog
+        builder.show();
     }
 }
-
+//TODO CREATE TASK WITh NaME ONLY correctly
 
