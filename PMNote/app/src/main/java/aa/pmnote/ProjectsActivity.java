@@ -353,7 +353,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     TimePickerDialog tpd = new TimePickerDialog(ProjectsActivity.this, new TimePickerDialog.OnTimeSetListener() {
                         @Override
                         public void onTimeSet(TimePicker timePicker, int hour, int minute) {
-                            timeInput.setText(hour + ":" + minute);
+                            timeInput.setText((hour < 10? "0" : "") + hour + ":" + (minute < 10? "0" : "") + minute);
                         }
                     }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true);
                     tpd.setTitle("Pick deadline time");

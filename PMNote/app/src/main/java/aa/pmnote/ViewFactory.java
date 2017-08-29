@@ -133,7 +133,7 @@ public class ViewFactory {
 
         TextView tv = new TextView(context);
         tv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120));
-        tv.setGravity(Gravity.LEFT);
+        tv.setGravity(Gravity.START | Gravity.CENTER_HORIZONTAL);
         tv.setTextSize(24);
         tv.setText(text);
         tv.setVisibility(View.VISIBLE);
