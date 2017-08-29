@@ -7,6 +7,7 @@ import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
 import android.support.v7.app.AlertDialog;
+import android.view.DragEvent;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -32,6 +33,8 @@ import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+
+import aa.pmnote.OnSwipeTouchListener;
 
 /**
  * Created by anton.gorielikov on 8/23/2017.
@@ -145,23 +148,30 @@ public class ViewFactory {
         return ll;
     }
 
-    static EditText attachToEditTextFactory(final Context context, final DatabaseReference root, final LinearLayout linearLayout)
+    static LinearLayout attachToEditTextFactory(final Context context, final DatabaseReference root, final LinearLayout linearLayout)
     {
         return attachToEditTextFactory(context, root, linearLayout, null);
     }
 
-    static EditText attachToEditTextFactory(final Context context, final DatabaseReference root, final LinearLayout linearLayout, String text) {
+    static LinearLayout attachToEditTextFactory(final Context context, final DatabaseReference root, final LinearLayout linearLayout, String text) {
+        final LinearLayout ll = new LinearLayout(context);
+        ll.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        ll.setOrientation(LinearLayout.HORIZONTAL);
+        ll.setVerticalGravity(Gravity.CENTER_VERTICAL);
+
         final EditText et = new EditText(context);
         et.setHint("Attach to");
         et.setKeyListener(null);
         if(text != null) {
             et.setText(text);
         }
+        et.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
 
         et.setOnFocusChangeListener(new View.OnFocusChangeListener() {
             @Override
-            public void onFocusChange(View view, final boolean b) {
-                if (b) {
+            public void onFocusChange(View view, boolean b) {
+                if(b)
+                {
                     root.addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
@@ -240,10 +250,9 @@ public class ViewFactory {
                             ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
                                 @Override
                                 public void onCancel(DialogInterface dialogInterface) {
-                                    if(linearLayout.getChildCount() > 1 && !et.getText().toString().isEmpty())
-                                        linearLayout.removeView(et);
                                 }
                             });
+
                             ad.show();
 
                         }
@@ -257,7 +266,23 @@ public class ViewFactory {
             }
         });
 
-        return et;
+        ll.addView(et);
+
+        ImageView iv = new ImageView(context);
+        iv.setLayoutParams(new ViewGroup.LayoutParams(120, 120));
+        iv.setImageResource(R.drawable.ic_remove);
+        iv.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                if(linearLayout.getChildCount() > 1 && !et.getText().toString().isEmpty())
+                    linearLayout.removeView(ll);
+            }
+        });
+        iv.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 10.0f));
+
+        ll.addView(iv);
+
+        return ll;
     }
 
     static ListView listViewFactory(Context context, DataSnapshot ds){

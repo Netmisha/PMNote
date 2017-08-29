@@ -71,6 +71,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
 import aa.pmnote.Defines;
+import aa.pmnote.OnSwipeTouchListener;
 
 public class ProjectsActivity extends AppCompatActivity {
 
@@ -142,14 +143,6 @@ public class ProjectsActivity extends AppCompatActivity {
                 case 0:
                     for (int j = 0; j < ll.getChildCount() - 1; ++j) {
                         LinearLayout mll = (LinearLayout) ll.getChildAt(j);
-                        for (int i = 0; i < mll.getChildCount(); ++i) {
-                            mll.getChildAt(i).setVisibility(View.VISIBLE);
-                        }
-                    }
-                    break;
-                case 1:
-                    for (int j = 0; j < ll.getChildCount() - 1; ++j) {
-                        LinearLayout mll = (LinearLayout) ll.getChildAt(j);
                         for (int i = 2; i < mll.getChildCount(); i += 2) {
                             boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(i)).getChildAt(0)).isChecked();
                             if (isCompeted) {
@@ -162,7 +155,7 @@ public class ProjectsActivity extends AppCompatActivity {
                         }
                     }
                     break;
-                case 2:
+                case 1:
                     for (int j = 0; j < ll.getChildCount() - 1; ++j) {
                         LinearLayout mll = (LinearLayout) ll.getChildAt(j);
                         for (int i = 2; i < mll.getChildCount(); i += 2) {
@@ -226,13 +219,31 @@ public class ProjectsActivity extends AppCompatActivity {
             @Override
             public void onPageSelected(int position) {
                 setTitle(mSectionsPagerAdapter.getPageTitle(position));
-                Defines.SetArrayList(mCurrentSpinnerList,
-                        (position == Defines.PROJECTS_FRAGMENT ? Defines.LinearLayoutType.PROJECT : Defines.LinearLayoutType.TASK));
-                mArrayAdapter.notifyDataSetChanged();
+                if(position == Defines.PROJECTS_FRAGMENT) {
+                    Defines.SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.PROJECT);
+                    mArrayAdapter.notifyDataSetChanged();
+                    int temp = mSearchOptions.getSelectedItemPosition();
+                    mSearchOptions.setSelection(mSavedSpinnerPosition);
+                    mSavedSpinnerPosition = temp;
+                }
+                else {
+                    mRootRef.child(Defines.LISTS_FOLDER).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            Defines.SetArrayList(mCurrentSpinnerList, dataSnapshot);
+                            mArrayAdapter.notifyDataSetChanged();
+                            int temp = mSearchOptions.getSelectedItemPosition();
+                            mSearchOptions.setSelection(mSavedSpinnerPosition);
+                            mSavedSpinnerPosition = temp;
+                        }
 
-                int temp = mSearchOptions.getSelectedItemPosition();
-                mSearchOptions.setSelection(mSavedSpinnerPosition);
-                mSavedSpinnerPosition = temp;
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+
+                        }
+                    });
+                }
+
             }
 
             @Override
@@ -425,13 +436,13 @@ public class ProjectsActivity extends AppCompatActivity {
                     child.child(enteredName).addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
-                            for(DataSnapshot ds : dataSnapshot.getChildren())
+                            for(DataSnapshot ds : dataSnapshot.child(Defines.TASK_ATTACHED_PEOPLE).getChildren())
                             {
                                 child.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
                                         .child(Defines.PEOPLE_FOLDER).child(ds.getKey()).child(Defines.PERSON_TASKS).child(enteredName).removeValue();
                             }
 
-                            for(DataSnapshot ds : dataSnapshot.getChildren())
+                            for(DataSnapshot ds : dataSnapshot.child(Defines.TASK_ATTACHED_PROJECTS).getChildren())
                             {
                                 child.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
                                         .child(Defines.PROJECTS_FOLDER).child(ds.getKey()).child(Defines.PROJECT_TASKS).child(enteredName).removeValue();
@@ -447,7 +458,7 @@ public class ProjectsActivity extends AppCompatActivity {
                             for(int i = 0; i < attachToLL.getChildCount() - 1; ++i)
                             {
                                 DatabaseReference taskRef = child.child(enteredName);
-                                String text = ((EditText)attachToLL.getChildAt(i)).getText().toString();
+                                String text = ((EditText)((LinearLayout)attachToLL.getChildAt(i)).getChildAt(0)).getText().toString();
                                 String parts[] = text.split(":");
                                 if(parts[0].equals("Person")) {
                                     taskRef.child(Defines.TASK_ATTACHED_PEOPLE).child(parts[1]).setValue(true);
@@ -485,7 +496,12 @@ public class ProjectsActivity extends AppCompatActivity {
         builder.show();
     }
 
-    private void AddNewProjectPerson() {
+    private void AddNewProjectPerson()
+    {
+        AddNewProjectPerson(null, null);
+    }
+
+    private void AddNewProjectPerson(String name, String email) {
         //build dialog with request for name input
         AlertDialog.Builder builder = new AlertDialog.Builder(ProjectsActivity.this);
         builder.setTitle("Enter item info");
@@ -510,9 +526,9 @@ public class ProjectsActivity extends AppCompatActivity {
         final EditText input = new EditText(ProjectsActivity.this);
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         input.setHint("Name");
+        if(name != null)
+            input.setText(name);
         input.setFilters(new InputFilter[] { nameFilter });
-
-        ll.addView(input);
 
         final Spinner spinner = new Spinner(ProjectsActivity.this);
         final TextView tv = new TextView(ProjectsActivity.this);
@@ -532,6 +548,30 @@ public class ProjectsActivity extends AppCompatActivity {
         spinner.setAdapter(adapter);
         adapter.notifyDataSetChanged();
         ll.addView(spinner);
+        ll.addView(input);
+
+        final EditText emailInput = new EditText(ProjectsActivity.this);
+        emailInput.setInputType(InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+        emailInput.setHint("Email");
+        if(email != null)
+            emailInput.setText(email);
+
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                if(i == 0)
+                    emailInput.setVisibility(View.VISIBLE);
+                else
+                    emailInput.setVisibility(View.GONE);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> adapterView) {
+
+            }
+        });
+
+        ll.addView(emailInput);
 
         builder.setView(ll);
 
@@ -540,15 +580,28 @@ public class ProjectsActivity extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String name = input.getText().toString();
-                DatabaseReference child = mRootRef;
-                switch (spinner.getSelectedItemPosition()) {
-                    case 0:
-                        child.child(Defines.PEOPLE_FOLDER).child(name).child(Defines.PERSON_PLACEHOLDER).setValue(true);
-                        break;
-                    case 1:
-                        child.child(Defines.PROJECTS_FOLDER).child(name).child(Defines.PROJECT_PLACEHOLDER).setValue(true);
+                String email = emailInput.getText().toString();
+                if(name.isEmpty()) {
+                    Toast.makeText(ProjectsActivity.this, "Name is not valid", Toast.LENGTH_SHORT).show();
+                    AddNewProjectPerson(name, email);
                 }
-
+                else {
+                    DatabaseReference child = mRootRef;
+                    switch (spinner.getSelectedItemPosition()) {
+                        case 0:
+                            if(email.isEmpty() || !Defines.isEmailValid(email)) {
+                                Toast.makeText(ProjectsActivity.this, "Email is not valid", Toast.LENGTH_SHORT).show();
+                                dialog.dismiss();
+                                AddNewProjectPerson(name, email);
+                            }
+                            child.child(Defines.PEOPLE_FOLDER).child(name).child(Defines.PERSON_PLACEHOLDER).setValue(true);
+                            child.child(Defines.PEOPLE_FOLDER).child(name).child(Defines.PERSON_INFO)
+                                    .child(Defines.PERSON_INFO_EMAIL).setValue(Defines.hlinkFromEmail(email));
+                            break;
+                        case 1:
+                            child.child(Defines.PROJECTS_FOLDER).child(name).child(Defines.PROJECT_PLACEHOLDER).setValue(true);
+                    }
+                }
             }
         });
 
@@ -848,6 +901,20 @@ public class ProjectsActivity extends AppCompatActivity {
             return rootView;
         }
 
+        private void Refresh()
+        {
+            mLinearLayout.removeAllViews();
+            mLinearLayout.addView(ViewFactory.placeholderFactory(getActivity()));
+            if (peopleCEV != null) {
+                mRootRef.child(Defines.PEOPLE_FOLDER).removeEventListener(peopleCEV);
+                mRootRef.child(Defines.PEOPLE_FOLDER).addChildEventListener(peopleCEV);
+            }
+            if (projectsCEV != null) {
+                mRootRef.child(Defines.PROJECTS_FOLDER).removeEventListener(projectsCEV);
+                mRootRef.child(Defines.PROJECTS_FOLDER).addChildEventListener(projectsCEV);
+            }
+        }
+
         @Override
         public void onStart() {
             super.onStart();
@@ -887,7 +954,7 @@ public class ProjectsActivity extends AppCompatActivity {
 
                 @Override
                 public void onChildRemoved(DataSnapshot dataSnapshot) {
-                    RemovePersonOrProject(dataSnapshot.getKey());
+                    Refresh();
                 }
 
                 @Override
@@ -904,7 +971,8 @@ public class ProjectsActivity extends AppCompatActivity {
             peopleCEV = dr.child(Defines.PEOPLE_FOLDER).addChildEventListener(new ChildEventListener() {
                 @Override
                 public void onChildAdded(DataSnapshot dataSnapshot, String s) {
-                    AddItem(dataSnapshot.getKey(), Defines.LinearLayoutType.PERSON);
+                    if(!dataSnapshot.child(Defines.PERSON_PROJECTS).exists())
+                        AddItem(dataSnapshot.getKey(), Defines.LinearLayoutType.PERSON);
                 }
 
                 @Override

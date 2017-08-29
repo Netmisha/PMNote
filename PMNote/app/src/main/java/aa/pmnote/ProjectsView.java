@@ -38,6 +38,7 @@ import android.widget.ListView;
 import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
+import android.widget.Toast;
 
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
@@ -150,10 +151,14 @@ public class ProjectsView extends AppCompatActivity {
         });
     }
 
-    private void AddNewPerson() {
+    private void AddNewPerson(){
+        AddNewPerson(null, null);
+    }
+
+    private void AddNewPerson(String name, String email) {
         //build dialog with request for name input
         AlertDialog.Builder builder = new AlertDialog.Builder(ProjectsView.this);
-        builder.setTitle("Enter person name");
+        builder.setTitle("Enter person info");
 
         final LinearLayout ll = new LinearLayout(ProjectsView.this);
         ll.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
@@ -176,8 +181,17 @@ public class ProjectsView extends AppCompatActivity {
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         input.setHint("Name");
         input.setFilters(new InputFilter[]{nameFilter});
+        if(name != null)
+            input.setText(name);
 
         ll.addView(input);
+
+        final EditText emailInput = new EditText(ProjectsView.this);
+        emailInput.setInputType(InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS);
+        emailInput.setHint("Email");
+        if(email != null)
+            emailInput.setText(email);
+        ll.addView(emailInput);
 
         builder.setView(ll);
 
@@ -186,12 +200,24 @@ public class ProjectsView extends AppCompatActivity {
             @Override
             public void onClick(DialogInterface dialog, int which) {
                 String name = input.getText().toString();
-                DatabaseReference child = mRootRef;
-                child.child(Defines.PROJECT_PEOPLE).child(name).setValue(true);
+                String email = emailInput.getText().toString();
+                if(name.isEmpty()){
+                    Toast.makeText(ProjectsView.this, "Name is empty", Toast.LENGTH_SHORT).show();
+                    AddNewPerson(name, email);
+                }
+                else if(email.isEmpty() || !Defines.isEmailValid(email)){
+                    Toast.makeText(ProjectsView.this, "Email is invalid", Toast.LENGTH_SHORT).show();
+                    AddNewPerson(name, email);
+                }
+                else {
+                    DatabaseReference child = mRootRef;
+                    child.child(Defines.PROJECT_PEOPLE).child(name).setValue(true);
 
-                child = child.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid()).child(Defines.PEOPLE_FOLDER).child(name);
-                child.child(Defines.PERSON_PLACEHOLDER).setValue(true);
-                child.child(Defines.PERSON_PROJECTS).child(mProjectName).setValue(true);
+                    child = child.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid()).child(Defines.PEOPLE_FOLDER).child(name);
+                    child.child(Defines.PERSON_PLACEHOLDER).setValue(true);
+                    child.child(Defines.PERSON_PROJECTS).child(mProjectName).setValue(true);
+                    child.child(Defines.PERSON_INFO).child(Defines.PERSON_INFO_EMAIL).setValue(Defines.hlinkFromEmail(email));
+                }
             }
         });
 
@@ -208,11 +234,13 @@ public class ProjectsView extends AppCompatActivity {
     }
 
     public void AddOrEditTask() {
-        AddOrEditTask(null, null, null, null, false, null);
+        ArrayList<String> list = new ArrayList<>();
+        list.add("Project:" + mProjectName);
+        AddOrEditTask(null, null, null, null, false, list);
     }
 
     public void AddOrEditTask(final String name) {
-        mRootRef.child(Defines.TASKS_FOLDER).child(name).addListenerForSingleValueEvent(new ValueEventListener() {
+        mRootRef.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid()).child(Defines.TASKS_FOLDER).child(name).addListenerForSingleValueEvent(new ValueEventListener() {
             @Override
             public void onDataChange(DataSnapshot dataSnapshot) {
                 String date = null, time = null, descr = null;
@@ -260,7 +288,7 @@ public class ProjectsView extends AppCompatActivity {
 
         InputFilter nameFilter = new InputFilter() {
             public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
-                for (int i = start;i < end;i++) {
+                for (int i = start; i < end; i++) {
                     if (!Character.isLetterOrDigit(source.charAt(i)) && !Character.toString(source.charAt(i)).equals("_") && !Character.toString(source.charAt(i)).equals("-")
                             && !Character.toString(source.charAt(i)).equals(" ")) {
                         return "";
@@ -275,7 +303,7 @@ public class ProjectsView extends AppCompatActivity {
         nameInput.setHint("Name");
         nameInput.setText(name != null ? name : "");
         ll.addView(nameInput);
-        nameInput.setFilters(new InputFilter[] { nameFilter });
+        nameInput.setFilters(new InputFilter[]{nameFilter});
 
         final EditText timeInput = new EditText(ProjectsView.this);
         timeInput.setKeyListener(null);
@@ -338,10 +366,8 @@ public class ProjectsView extends AppCompatActivity {
         attachToLL.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
         attachToLL.setOrientation(LinearLayout.VERTICAL);
         attachToLL.setGravity(Gravity.CENTER);
-        if(attachedToList != null)
-        {
-            for(String text : attachedToList)
-            {
+        if (attachedToList != null) {
+            for (String text : attachedToList) {
                 attachToLL.addView(ViewFactory.attachToEditTextFactory(ProjectsView.this, mRootRef, attachToLL, text));
             }
         }
@@ -356,22 +382,22 @@ public class ProjectsView extends AppCompatActivity {
             public void onClick(DialogInterface dialog, int which) {
                 final String enteredName = nameInput.getText().toString();
                 if (!enteredName.isEmpty()) {
-                    final DatabaseReference child = mRootRef.child(Defines.TASKS_FOLDER);
+                    final DatabaseReference child = mRootRef.child(Defines.PROJECT_TASKS);
                     if (name != null && !enteredName.equals(name)) {
                         child.child(name).removeValue();
                     }
 
-                    child.child(enteredName).addListenerForSingleValueEvent(new ValueEventListener() {
+                    child.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
+                            .child(Defines.TASKS_FOLDER).child(enteredName).addListenerForSingleValueEvent(new ValueEventListener() {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
-                            for(DataSnapshot ds : dataSnapshot.getChildren())
-                            {
+                            for (DataSnapshot ds : dataSnapshot.child(Defines.TASK_ATTACHED_PEOPLE).getChildren()) {
                                 child.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
                                         .child(Defines.PEOPLE_FOLDER).child(ds.getKey()).child(Defines.PERSON_TASKS).child(enteredName).removeValue();
                             }
 
-                            for(DataSnapshot ds : dataSnapshot.getChildren())
-                            {
+                            for (DataSnapshot ds : dataSnapshot.child(Defines.TASK_ATTACHED_PROJECTS).getChildren()) {
+                                String projName = ds.getKey();
                                 child.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
                                         .child(Defines.PROJECTS_FOLDER).child(ds.getKey()).child(Defines.PROJECT_TASKS).child(enteredName).removeValue();
                             }
@@ -381,27 +407,23 @@ public class ProjectsView extends AppCompatActivity {
                             data.put(Defines.TASK_DATE, dateInput.getText().toString());
                             data.put(Defines.TASK_DESCR, descriptionInput.getText().toString());
                             data.put(Defines.TASK_TIME, timeInput.getText().toString());
-                            child.child(enteredName).setValue(data);
+                            child.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid()).child(Defines.TASKS_FOLDER).child(enteredName).setValue(data);
 
-                            for(int i = 0; i < attachToLL.getChildCount() - 1; ++i)
-                            {
+                            for (int i = 0; i < attachToLL.getChildCount() - 1; ++i) {
                                 DatabaseReference taskRef = child.child(enteredName);
-                                String text = ((EditText)attachToLL.getChildAt(i)).getText().toString();
+                                String text = ((EditText) attachToLL.getChildAt(i)).getText().toString();
                                 String parts[] = text.split(":");
-                                if(parts[0].equals("Person")) {
+                                if (parts[0].equals("Person")) {
                                     taskRef.child(Defines.TASK_ATTACHED_PEOPLE).child(parts[1]).setValue(true);
                                     taskRef = taskRef.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
                                             .child(Defines.PEOPLE_FOLDER).child(parts[1]).child(Defines.PERSON_TASKS).child(enteredName);
                                     taskRef.setValue(true);
-                                }
-                                else {
+                                } else {
                                     taskRef.child(Defines.TASK_ATTACHED_PROJECTS).child(parts[1]).setValue(true);
                                     taskRef.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
                                             .child(Defines.PROJECTS_FOLDER).child(parts[1]).child(Defines.PROJECT_TASKS).child(enteredName).setValue(true);
                                 }
                             }
-
-                            mRootRef.child(Defines.PROJECT_TASKS).child(enteredName).setValue(true);
                         }
 
                         @Override
@@ -826,6 +848,7 @@ public class ProjectsView extends AppCompatActivity {
         };
 
         private void SetUpTasksListener() {
+            mLinearLayout.addView(ViewFactory.placeholderFactory(getActivity()));
             if (getArguments().getInt(ARG_SECTION_NUMBER) - 1 == Defines.PROJECT_TASKS_FRAGMENT) {
                 tasksCEV = mRoot.child(Defines.PROJECT_TASKS).addChildEventListener(new ChildEventListener() {
                     @Override
@@ -864,8 +887,8 @@ public class ProjectsView extends AppCompatActivity {
                                     }
                                 });
 
-                                mLinearLayout.addView(ll);
-                                mLinearLayout.addView(ViewFactory.horizontalDividerFactory(getActivity()));
+                                mLinearLayout.addView(ll, mLinearLayout.getChildCount() - 1);
+                                mLinearLayout.addView(ViewFactory.horizontalDividerFactory(getActivity()), mLinearLayout.getChildCount() - 1);
                             }
 
                             @Override
@@ -922,8 +945,8 @@ public class ProjectsView extends AppCompatActivity {
                             }
                         });
 
-                        mLinearLayout.addView(ll);
-                        mLinearLayout.addView(ViewFactory.horizontalDividerFactory(getActivity()));
+                        mLinearLayout.addView(ll, mLinearLayout.getChildCount() - 1);
+                        mLinearLayout.addView(ViewFactory.horizontalDividerFactory(getActivity()), mLinearLayout.getChildCount() - 1);
                     }
 
                     @Override
