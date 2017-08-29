@@ -860,8 +860,7 @@ public class ProjectsView extends AppCompatActivity {
                                     @Override
                                     public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                                         mRoot.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid()).child(Defines.TASKS_FOLDER)
-                                                .child((String) ((CheckBox) ll.getChildAt(1)).getTag()).child(Defines.TASK_STATUS).setValue(String.valueOf(b));
-                                        ((ProjectsActivity) getActivity()).RefreshCurrentFragment();
+                                                .child((String) ((CheckBox) ll.getChildAt(0)).getTag()).child(Defines.TASK_STATUS).setValue(String.valueOf(b));
                                     }
                                 });
 
