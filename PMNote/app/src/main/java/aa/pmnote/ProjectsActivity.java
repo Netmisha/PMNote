@@ -108,12 +108,12 @@ public class ProjectsActivity extends AppCompatActivity {
         if (mViewPager.getCurrentItem() == 0) {
             switch (search_option) {
                 case 0:
-                    for (int i = 0; i < ll.getChildCount(); ++i) {
+                    for (int i = 0; i < ll.getChildCount() - 1; ++i) {
                         ll.getChildAt(i).setVisibility(View.VISIBLE);
                     }
                     break;
                 case 1:
-                    for (int i = 0; i < ll.getChildCount(); i += 2) {
+                    for (int i = 0; i < ll.getChildCount() - 1; i += 2) {
                         boolean isProject = Defines.LinearLayoutType.PROJECT == ((ImageView) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
                         if (!isProject) {
                             ll.getChildAt(i).setVisibility(View.GONE);
@@ -125,7 +125,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     }
                     break;
                 case 2:
-                    for (int i = 0; i < ll.getChildCount(); i += 2) {
+                    for (int i = 0; i < ll.getChildCount() - 1; i += 2) {
                         boolean isProject = Defines.LinearLayoutType.PERSON == ((ImageView) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
                         if (!isProject) {
                             ll.getChildAt(i).setVisibility(View.GONE);
