@@ -9,6 +9,7 @@ import android.content.Intent;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
+import android.provider.CalendarContract;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
@@ -150,7 +151,7 @@ public class ProfileView extends AppCompatActivity
 
 
                 AlertDialog.Builder builder;
-                final String[] mItemsName = {"Note", "Checkbox", "Slider",  "Combobox", "Spinbox", "Add Task", "Attach to Project"};
+                final String[] mItemsName = {"Note", "Checkbox", "Slider",  "Combobox", "Spinbox", "Add Task", "Attach to Project", "Create Meeting"};
 
                 builder = new AlertDialog.Builder(ProfileView.this);
                 builder.setTitle("Add ..."); // tite
@@ -178,6 +179,9 @@ public class ProfileView extends AppCompatActivity
                                 break;
                             case "Attach to Project":
                                 AddToProject();
+                                break;
+                            case "Create Meeting":
+                                CreateMeeting();
                                 break;
                         }
                     }
@@ -1624,5 +1628,10 @@ public class ProfileView extends AppCompatActivity
             }
         });
     }
-}
 
+    private void CreateMeeting()
+    {
+        mAuth.getCurrentUser().getEmail();
+        CalendarContract.Events events ;
+    }
+}
