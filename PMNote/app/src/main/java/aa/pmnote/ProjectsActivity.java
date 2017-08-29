@@ -140,7 +140,7 @@ public class ProjectsActivity extends AppCompatActivity {
         } else {
             switch (search_option) {
                 case 0:
-                    for (int j = 0; j < ll.getChildCount(); ++j) {
+                    for (int j = 0; j < ll.getChildCount() - 1; ++j) {
                         LinearLayout mll = (LinearLayout) ll.getChildAt(j);
                         for (int i = 0; i < mll.getChildCount(); ++i) {
                             mll.getChildAt(i).setVisibility(View.VISIBLE);
@@ -148,7 +148,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     }
                     break;
                 case 1:
-                    for (int j = 0; j < ll.getChildCount(); ++j) {
+                    for (int j = 0; j < ll.getChildCount() - 1; ++j) {
                         LinearLayout mll = (LinearLayout) ll.getChildAt(j);
                         for (int i = 2; i < mll.getChildCount(); i += 2) {
                             boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(i)).getChildAt(0)).isChecked();
@@ -163,7 +163,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     }
                     break;
                 case 2:
-                    for (int j = 0; j < ll.getChildCount(); ++j) {
+                    for (int j = 0; j < ll.getChildCount() - 1; ++j) {
                         LinearLayout mll = (LinearLayout) ll.getChildAt(j);
                         for (int i = 2; i < mll.getChildCount(); i += 2) {
                             boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(i)).getChildAt(0)).isChecked();
@@ -201,6 +201,7 @@ public class ProjectsActivity extends AppCompatActivity {
         mSearchOptions = (Spinner) findViewById(R.id.searchOptions);
         mArrayAdapter = new ArrayAdapter<String>(this, R.layout.spinner_item, mCurrentSpinnerList);
         mSearchOptions.setAdapter(mArrayAdapter);
+        mSearchOptions.setSelection(0);
 
         mSearchOptions.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
@@ -314,7 +315,7 @@ public class ProjectsActivity extends AppCompatActivity {
         builder.setTitle("Edit task");
 
         final LinearLayout ll = new LinearLayout(ProjectsActivity.this);
-        ll.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+        ll.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         ll.setOrientation(LinearLayout.VERTICAL);
         ll.setGravity(Gravity.CENTER);
 
@@ -395,7 +396,7 @@ public class ProjectsActivity extends AppCompatActivity {
         ll.addView(descriptionInput);
 
         final LinearLayout attachToLL = new LinearLayout(ProjectsActivity.this);
-        attachToLL.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+        attachToLL.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         attachToLL.setOrientation(LinearLayout.VERTICAL);
         attachToLL.setGravity(Gravity.CENTER);
         if(attachedToList != null)
@@ -608,7 +609,8 @@ public class ProjectsActivity extends AppCompatActivity {
                         searchView.setQuery("", false);
                         searchView.setIconified(true);
 
-                        HideItemsBySearchOptions(mSearchOptions.getSelectedItemPosition());
+                        int position = mSearchOptions.getSelectedItemPosition();
+                        HideItemsBySearchOptions(position);
                     }
                 });
 
@@ -633,15 +635,36 @@ public class ProjectsActivity extends AppCompatActivity {
 
     private void HideAllNonMatches(String text) {
         LinearLayout ll = mSectionsPagerAdapter.getFragment(mViewPager.getCurrentItem()).GetLinearLayout();
-        for (int i = 0; i < ll.getChildCount(); i += 2) {
-            String llText = ((TextView) ((LinearLayout) ll.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
-            if (text == null || llText.contains(text)) {
-                ll.getChildAt(i).setVisibility(View.VISIBLE);
-                ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
-            } else {
-                ll.getChildAt(i).setVisibility(View.GONE);
-                ll.getChildAt(i + 1).setVisibility(View.GONE);
-            }
+        switch (mViewPager.getCurrentItem())
+        {
+            case Defines.PROJECTS_FRAGMENT:
+                for (int i = 0; i < ll.getChildCount() - 1; i += 2) {
+                    String llText = ((TextView) ((LinearLayout) ll.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                    if (text == null || llText.contains(text)) {
+                        ll.getChildAt(i).setVisibility(View.VISIBLE);
+                        ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                    } else {
+                        ll.getChildAt(i).setVisibility(View.GONE);
+                        ll.getChildAt(i + 1).setVisibility(View.GONE);
+                    }
+                }
+                break;
+
+            case Defines.TASKS_FRAGMENT:
+                for(int j = 0; j < ll.getChildCount() - 1; ++j) {
+                    LinearLayout minorLL = (LinearLayout)ll.getChildAt(j);
+                    for (int i = 2; i < minorLL.getChildCount(); i += Defines.ITEM_SIZE_IN_VIEWS) {
+                        String llText = ((TextView) ((LinearLayout) minorLL.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                        if (text == null || llText.contains(text)) {
+                            minorLL.getChildAt(i).setVisibility(View.VISIBLE);
+                            minorLL.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                        } else {
+                            minorLL.getChildAt(i).setVisibility(View.GONE);
+                            minorLL.getChildAt(i + 1).setVisibility(View.GONE);
+                        }
+                    }
+                }
+                break;
         }
     }
 
@@ -805,6 +828,7 @@ public class ProjectsActivity extends AppCompatActivity {
                         mRootRef = FirebaseDatabase.getInstance().getReference().child("Users").child(uid);
                         switch (getArguments().getInt(ARG_SECTION_NUMBER) - 1) {
                             case Defines.PROJECTS_FRAGMENT:
+                                mLinearLayout.addView(ViewFactory.placeholderFactory(getActivity()));
                                 SetUpProjectsPersonList(mRootRef);
                                 break;
                             case Defines.TASKS_FRAGMENT:
@@ -812,6 +836,7 @@ public class ProjectsActivity extends AppCompatActivity {
                                 mLinearLayout.addView(mWeekTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "7 days"));
                                 mLinearLayout.addView(mMonthTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "30 days"));
                                 mLinearLayout.addView(mOtherTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Ton of time"));
+                                mLinearLayout.addView(ViewFactory.placeholderFactory(getActivity()));
 
                                 SetUpTaskList(mRootRef);
                                 break;
@@ -1054,8 +1079,8 @@ public class ProjectsActivity extends AppCompatActivity {
                 }
             });
 
-            mLinearLayout.addView(ll);
-            mLinearLayout.addView(ViewFactory.horizontalDividerFactory(getActivity()));
+            mLinearLayout.addView(ll, mLinearLayout.getChildCount() - 1);
+            mLinearLayout.addView(ViewFactory.horizontalDividerFactory(getActivity()), mLinearLayout.getChildCount() - 1);
         }
 
         private void RemoveTaskByText(String text) {
@@ -1080,7 +1105,7 @@ public class ProjectsActivity extends AppCompatActivity {
         private int FindLinearLayoutByText(String text) {
             int childCount = mLinearLayout.getChildCount();
             int i;
-            for (i = 0; i < childCount; i += Defines.ITEM_SIZE_IN_VIEWS) {
+            for (i = 0; i < childCount - 1; i += Defines.ITEM_SIZE_IN_VIEWS) {
                 String llText = ((TextView) ((LinearLayout) mLinearLayout.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
                 if (llText.equals(text)) {
                     break;

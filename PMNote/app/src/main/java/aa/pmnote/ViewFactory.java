@@ -38,9 +38,9 @@ import java.util.Calendar;
  */
 
 public class ViewFactory {
-    public final static int LINEAR_LAYOUT_CHECKBOX_POSITION = 0;
+    final static int LINEAR_LAYOUT_CHECKBOX_POSITION = 0;
 
-    static public LinearLayout linearLayoutFactory(Context context, String text, Defines.LinearLayoutType llt) {
+    static LinearLayout linearLayoutFactory(Context context, String text, Defines.LinearLayoutType llt) {
         LinearLayout ll = new LinearLayout(context);
         ll.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
@@ -54,7 +54,7 @@ public class ViewFactory {
         return ll;
     }
 
-    static public LinearLayout linearLayoutFactory(Context context, String text, boolean checkBoxStatus) {
+    static LinearLayout linearLayoutFactory(Context context, String text, boolean checkBoxStatus) {
         LinearLayout ll = new LinearLayout(context);
         ll.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
@@ -68,7 +68,7 @@ public class ViewFactory {
         return ll;
     }
 
-    static public CheckBox checkBoxFactory(Context context, String text, boolean checked) {
+    static CheckBox checkBoxFactory(Context context, String text, boolean checked) {
         final CheckBox cb = new CheckBox(context);
         cb.setLayoutParams(new ViewGroup.LayoutParams(120, 120));
         cb.setText("");
@@ -78,7 +78,7 @@ public class ViewFactory {
         return cb;
     }
 
-    static public ImageView imageViewFactory(Context context, Defines.LinearLayoutType llt) {
+    static ImageView imageViewFactory(Context context, Defines.LinearLayoutType llt) {
         ImageView iv = new ImageView(context);
         iv.setLayoutParams(new ViewGroup.LayoutParams(120, 120));
         switch (llt) {
@@ -95,11 +95,11 @@ public class ViewFactory {
         return iv;
     }
 
-    static public TextView textViewFactory(Context context, String text) {
+    static TextView textViewFactory(Context context, String text) {
         return textViewFactory(context, text, null);
     }
 
-    static public TextView textViewFactory(Context context, String text, View.OnClickListener onClickListener) {
+    static TextView textViewFactory(Context context, String text, View.OnClickListener onClickListener) {
         TextView tv = new TextView(context);
         tv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         tv.setGravity(Gravity.RIGHT);
@@ -111,21 +111,21 @@ public class ViewFactory {
         return tv;
     }
 
-    static public View horizontalDividerFactory(Context context) {
+    static View horizontalDividerFactory(Context context) {
         return horizontalDividerFactory(context, Color.GRAY);
     }
 
-    static public View horizontalDividerFactory(Context context, int color) {
+    static View horizontalDividerFactory(Context context, int color) {
         View hd = new View(context);
         hd.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
         hd.setBackgroundColor(color);
         return hd;
     }
 
-    static public LinearLayout titledLinearLayoutFactory(Context context, String text) {
+    static LinearLayout titledLinearLayoutFactory(Context context, String text) {
         LinearLayout ll = new LinearLayout(context);
         ll.setOrientation(LinearLayout.VERTICAL);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         ll.setGravity(Gravity.CENTER);
         ll.setLayoutParams(lp);
         ll.setVisibility(View.GONE);
@@ -145,12 +145,12 @@ public class ViewFactory {
         return ll;
     }
 
-    static public EditText attachToEditTextFactory(final Context context, final DatabaseReference root, final LinearLayout linearLayout)
+    static EditText attachToEditTextFactory(final Context context, final DatabaseReference root, final LinearLayout linearLayout)
     {
         return attachToEditTextFactory(context, root, linearLayout, null);
     }
 
-    static public EditText attachToEditTextFactory(final Context context, final DatabaseReference root, final LinearLayout linearLayout, String text) {
+    static EditText attachToEditTextFactory(final Context context, final DatabaseReference root, final LinearLayout linearLayout, String text) {
         final EditText et = new EditText(context);
         et.setHint("Attach to");
         et.setKeyListener(null);
@@ -260,7 +260,7 @@ public class ViewFactory {
         return et;
     }
 
-    public static ListView listViewFactory(Context context, DataSnapshot ds){
+    static ListView listViewFactory(Context context, DataSnapshot ds){
 
         ArrayList<String> arrayList = new ArrayList<String>();
         for(DataSnapshot dataSnapshot : ds.getChildren())
@@ -274,5 +274,12 @@ public class ViewFactory {
         lv.setAdapter(arrayAdapter);
 
         return lv;
+    }
+
+    static View placeholderFactory(Context context)
+    {
+        View view = new View(context);
+        view.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 120));
+        return view;
     }
 }
