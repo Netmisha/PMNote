@@ -32,6 +32,7 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.DatePicker;
 import android.widget.ImageView;
+import android.widget.ScrollView;
 import android.widget.Space;
 import android.widget.TimePicker;
 import android.widget.Toast;
@@ -149,7 +150,7 @@ public class ProfileView extends AppCompatActivity
 
 
                 AlertDialog.Builder builder;
-                final String[] mItemsName = {"Note", "Checkbox", "Slider",  "Combobox", "Spinbox", "Add Task"};
+                final String[] mItemsName = {"Note", "Checkbox", "Slider",  "Combobox", "Spinbox", "Add Task", "Attach to Project"};
 
                 builder = new AlertDialog.Builder(ProfileView.this);
                 builder.setTitle("Add ..."); // tite
@@ -174,6 +175,9 @@ public class ProfileView extends AppCompatActivity
                                 break;
                             case "Add Task":
                                 AddOrEditTask();
+                                break;
+                            case "Attach to Project":
+                                AddToProject();
                                 break;
                         }
                     }
@@ -224,6 +228,19 @@ public class ProfileView extends AppCompatActivity
                 ad.show();
             }
         });
+
+        ImageView add_t = (ImageView) findViewById(R.id.add_ts);
+        add_t.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {AddOrEditTask();}
+        });
+
+        ImageView add_p = (ImageView) findViewById(R.id.add_pr);
+        add_p.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {AddToProject();}
+        });
+
     }
 
     @Override
@@ -249,21 +266,23 @@ public class ProfileView extends AppCompatActivity
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
         if(requestCode==IMPORT_PICTURE && resultCode==RESULT_OK) {
-            Uri selectedfile = data.getData(); //The uri with the location of the file
 
+
+            Uri selectedfile = data.getData(); //The uri with the location of the file
 
             StorageReference ProfileImgRef = mStorageRef.child("/"+uid + "/" + mName+"/ProfileImage/");
             ProfileImgRef.delete();
+
 
             ProfileImgRef.putFile(selectedfile)
                     .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
                         @Override
                         public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
                             // Get a URL to the uploaded content
-                            Uri downloadUrl = taskSnapshot.getDownloadUrl();
-                            ImageView imageView =  (ImageView) findViewById(R.id.avatar);
                             finish();
                             startActivity(getIntent());
+                            Uri downloadUrl = taskSnapshot.getDownloadUrl();
+                            ImageView imageView =  (ImageView) findViewById(R.id.avatar);
                             Glide.with(ProfileView.this).load(downloadUrl.toString()).into(imageView);
                         }
                     })
@@ -1523,6 +1542,99 @@ public class ProfileView extends AppCompatActivity
         //show dialog
         builder.show();
     }
+
+    public Boolean is_ok = true;
+    private void AddToProject() {
+        final AlertDialog.Builder alertDialog = new AlertDialog.Builder(ProfileView.this);
+        alertDialog.setTitle("ATTACH TO PROJECT");
+        alertDialog.setMessage("Projects:");
+
+
+        mRootRef.getRoot().child("Users").child(uid).child("Projects").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+
+                final LinearLayout project_list_layout = new LinearLayout(ProfileView.this);
+                project_list_layout.setOrientation(LinearLayout.VERTICAL);
+
+                for (DataSnapshot ds : dataSnapshot.getChildren()) {
+                    final Button proj = new Button(ProfileView.this);
+
+                    final String name = ds.getKey();
+                    mRootRef.getRoot().child("Users").child(uid).child("People").child(mName).child("Projects").addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot2) {
+                            for (DataSnapshot ds2 : dataSnapshot2.getChildren()) {
+                                if (name.compareTo(ds2.getKey()) == 0) {
+                                    is_ok = false;
+                                }
+                            }
+                            if (is_ok) {
+
+                                proj.setText(name);
+                                proj.setTextColor(Color.BLACK);
+                                proj.setTextSize(20);
+                                project_list_layout.addView(proj);
+                                proj.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        mRootRef.getRoot().child("Users").child(uid).child("Projects").child(name).child("People").child(mName).setValue(true);
+                                        mRootRef.child("Projects").child(name).setValue(true);
+                                        TextView proj = new TextView(ProfileView.this);
+                                        proj.setText(name);
+                                        proj.setTextColor(Color.BLACK);
+                                        proj.setTextSize(20);
+                                        LinearLayout ll = (LinearLayout) findViewById(R.id.projects_layout);
+                                        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                                                LinearLayout.LayoutParams.MATCH_PARENT,
+                                                LinearLayout.LayoutParams.WRAP_CONTENT);
+
+                                        ll.addView(proj, lp);
+                                        finish();
+                                        startActivity(getIntent());
+                                    }
+                                });
+                            }
+                            is_ok = true;
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+
+                        }
+                    });
+
+                }
+                final ScrollView sv = new ScrollView(ProfileView.this);
+                sv.addView(project_list_layout);
+
+
+                //LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
+                //LinearLayout.LayoutParams.MATCH_PARENT,
+                // LinearLayout.LayoutParams.MATCH_PARENT);
+                // input.setLayoutParams(set_lp);
+                alertDialog.setView(sv);
+
+
+                alertDialog.setNegativeButton("CANCEL",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.cancel();
+                            }
+                        });
+
+                //alertDialog.show();
+                final AlertDialog alert = alertDialog.create();
+
+                alert.show();
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
 }
-//TODO CREATE TASK WITh NaME ONLY correctly
 

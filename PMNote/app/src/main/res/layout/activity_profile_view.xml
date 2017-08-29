@@ -180,20 +180,36 @@
                     android:layout_height="match_parent"
                     android:orientation="vertical">
 
-                    <TextView
-                        android:id="@+id/Projects_label"
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Projects:"
-                        android:textColor="@android:color/black"
-                        android:textSize="25sp"
-                        android:textStyle="bold|italic" />
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/Projects_label"
+                            android:layout_width="347dp"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="5000"
+                            android:text="Projects:"
+                            android:textColor="@android:color/black"
+                            android:textSize="25sp"
+                            android:textStyle="bold|italic" />
+
+                        <ImageView
+                            android:id="@+id/add_pr"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            app:srcCompat="@android:drawable/ic_input_add" />
+                    </LinearLayout>
+
                 </LinearLayout>
+
                 <View
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
-                    android:background="@android:color/darker_gray"
-                    android:layout_marginTop="4dp">
+                    android:layout_marginTop="4dp"
+                    android:background="@android:color/darker_gray">
 
                 </View>
 
@@ -203,14 +219,29 @@
                     android:layout_height="match_parent"
                     android:orientation="vertical">
 
-                    <TextView
-                        android:id="@+id/Tasks_label"
+                    <LinearLayout
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:text="Tasks:"
-                        android:textColor="@android:color/black"
-                        android:textSize="25sp"
-                        android:textStyle="bold|italic" />
+                        android:layout_height="match_parent"
+                        android:orientation="horizontal">
+
+                        <TextView
+                            android:id="@+id/Tasks_label"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="5000"
+                            android:text="Tasks:"
+                            android:textColor="@android:color/black"
+                            android:textSize="25sp"
+                            android:textStyle="bold|italic" />
+
+                        <ImageView
+                            android:id="@+id/add_ts"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_weight="1"
+                            app:srcCompat="@android:drawable/ic_input_add" />
+                    </LinearLayout>
+
                 </LinearLayout>
 
                 <View
