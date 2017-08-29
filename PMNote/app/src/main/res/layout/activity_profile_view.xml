@@ -53,7 +53,7 @@
                 android:layout_height="match_parent"
                 android:fitsSystemWindows="false"
                 android:shape="ring"
-                app:srcCompat="@drawable/test_face" />
+                app:srcCompat="@mipmap/ic_launcher" />
 
             <LinearLayout
                 android:layout_width="match_parent"
