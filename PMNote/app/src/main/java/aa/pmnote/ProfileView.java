@@ -1580,18 +1580,6 @@ public class ProfileView extends AppCompatActivity
                                     public void onClick(View view) {
                                         mRootRef.getRoot().child("Users").child(uid).child("Projects").child(name).child("People").child(mName).setValue(true);
                                         mRootRef.child("Projects").child(name).setValue(true);
-                                        TextView proj = new TextView(ProfileView.this);
-                                        proj.setText(name);
-                                        proj.setTextColor(Color.BLACK);
-                                        proj.setTextSize(20);
-                                        LinearLayout ll = (LinearLayout) findViewById(R.id.projects_layout);
-                                        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
-                                                LinearLayout.LayoutParams.MATCH_PARENT,
-                                                LinearLayout.LayoutParams.WRAP_CONTENT);
-
-                                        ll.addView(proj, lp);
-                                        finish();
-                                        startActivity(getIntent());
                                     }
                                 });
                             }
