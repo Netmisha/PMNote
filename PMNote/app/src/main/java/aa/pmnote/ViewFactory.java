@@ -186,6 +186,7 @@ public class ViewFactory {
                             final ArrayList<String> list = new ArrayList<>();
                             list.add("Person");
                             list.add("Project");
+                            list.add("List");
                             final ArrayAdapter<String> adapter = new ArrayAdapter<String>(context,
                                     R.layout.my_spinner_item, list);
                             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
@@ -193,10 +194,12 @@ public class ViewFactory {
                             adapter.notifyDataSetChanged();
                             buildLL.addView(spinner);
 
-                            final ListView peopleView = listViewFactory(context, dataSnapshot.child("People"));
+                            final ListView peopleView = listViewFactory(context, dataSnapshot.child(Defines.PEOPLE_FOLDER));
                             peopleView.setVisibility(View.GONE);
-                            final ListView projectsView = listViewFactory(context, dataSnapshot.child("Projects"));
+                            final ListView projectsView = listViewFactory(context, dataSnapshot.child(Defines.PROJECTS_FOLDER));
                             projectsView.setVisibility(View.GONE);
+                            final ListView listsView = listViewFactory(context, dataSnapshot.child(Defines.LISTS_FOLDER));
+                            listsView.setVisibility(View.GONE);
 
                             spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
                                 @Override
@@ -204,13 +207,19 @@ public class ViewFactory {
                                     switch(position)
                                     {
                                         case 0:
+                                            listsView.setVisibility(View.GONE);
                                             projectsView.setVisibility(View.GONE);
                                             peopleView.setVisibility(View.VISIBLE);
                                             break;
                                         case 1:
+                                            listsView.setVisibility(View.GONE);
                                             peopleView.setVisibility(View.GONE);
                                             projectsView.setVisibility(View.VISIBLE);
                                             break;
+                                        case 2:
+                                            peopleView.setVisibility(View.GONE);
+                                            projectsView.setVisibility(View.GONE);
+                                            listsView.setVisibility(View.VISIBLE);
                                     }
                                 }
 
@@ -222,6 +231,7 @@ public class ViewFactory {
 
                             buildLL.addView(peopleView);
                             buildLL.addView(projectsView);
+                            buildLL.addView(listsView);
 
                             builder.setView(buildLL);
                             final AlertDialog ad = builder.create();
@@ -241,6 +251,16 @@ public class ViewFactory {
                                 public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
                                     String name = ((TextView)view).getText().toString();
                                     et.setText("Project:" + name);
+                                    linearLayout.addView(attachToEditTextFactory(context, root, linearLayout));
+                                    ad.dismiss();
+                                }
+                            });
+
+                            listsView.setOnItemClickListener(new AdapterView.OnItemClickListener() {
+                                @Override
+                                public void onItemClick(AdapterView<?> adapterView, View view, int i, long l) {
+                                    String name = ((TextView)view).getText().toString();
+                                    et.setText("List:" + name);
                                     linearLayout.addView(attachToEditTextFactory(context, root, linearLayout));
                                     ad.dismiss();
                                 }

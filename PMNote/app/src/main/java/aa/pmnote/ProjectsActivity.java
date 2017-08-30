@@ -96,7 +96,7 @@ public class ProjectsActivity extends AppCompatActivity {
 
     private Spinner mSearchOptions;
 
-    private ArrayAdapter<String> mArrayAdapter;
+    private MyArrayAdapter mArrayAdapter;
     private ArrayList<String> mCurrentSpinnerList = new ArrayList<>();
     private int mSavedSpinnerPosition = 0;
 
@@ -139,7 +139,7 @@ public class ProjectsActivity extends AppCompatActivity {
         }
     }
 
-    private void HideItemsBySearchOptions(String list) {
+    private void HideItemsBySearchOptions(final String list) {
 
         LinearLayout ll = mSectionsPagerAdapter.getFragment(mViewPager.getCurrentItem()).GetLinearLayout();
         switch (list) {
@@ -157,10 +157,13 @@ public class ProjectsActivity extends AppCompatActivity {
                                 if(!isInList && !isCompleted) {
                                     mll.getChildAt(taskNum).setVisibility(View.VISIBLE);
                                     mll.getChildAt(taskNum + 1).setVisibility(View.VISIBLE);
+                                    mll.setVisibility(View.VISIBLE);
                                 }
                                 else{
                                     mll.getChildAt(taskNum).setVisibility(View.GONE);
                                     mll.getChildAt(taskNum + 1).setVisibility(View.GONE);
+                                    if(Defines.isListGone(mll))
+                                        mll.setVisibility(View.GONE);
                                 }
                             }
 
@@ -170,6 +173,8 @@ public class ProjectsActivity extends AppCompatActivity {
                             }
                         });
                     }
+                    if(Defines.isListGone(mll))
+                        mll.setVisibility(View.GONE);
                 }
                 break;
             case Defines.COMPLETED_TASKS:
@@ -186,10 +191,13 @@ public class ProjectsActivity extends AppCompatActivity {
                                 if(!isInList && isCompleted) {
                                     mll.getChildAt(taskNum).setVisibility(View.VISIBLE);
                                     mll.getChildAt(taskNum + 1).setVisibility(View.VISIBLE);
+                                    mll.setVisibility(View.VISIBLE);
                                 }
                                 else{
                                     mll.getChildAt(taskNum).setVisibility(View.GONE);
                                     mll.getChildAt(taskNum + 1).setVisibility(View.GONE);
+                                    if(Defines.isListGone(mll))
+                                        mll.setVisibility(View.GONE);
                                 }
                             }
 
@@ -199,23 +207,99 @@ public class ProjectsActivity extends AppCompatActivity {
                             }
                         });
                     }
+                    if(Defines.isListGone(mll))
+                        mll.setVisibility(View.GONE);
+                }
+                break;
+            default:
+                for (int j = 0; j < ll.getChildCount() - 1; ++j) {
+                    final LinearLayout mll = (LinearLayout) ll.getChildAt(j);
+                    for (int i = 2; i < mll.getChildCount(); i += 2) {
+                        String taskName = ((TextView)((LinearLayout) mll.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                        final int taskNum = i;
+                        mRootRef.child(Defines.TASKS_FOLDER).child(taskName).addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                boolean isInNeededList = dataSnapshot.child(Defines.TASK_ATTACHED_LISTS).child(list).exists();
+                                if(isInNeededList) {
+                                    mll.getChildAt(taskNum).setVisibility(View.VISIBLE);
+                                    mll.getChildAt(taskNum + 1).setVisibility(View.VISIBLE);
+                                    mll.setVisibility(View.VISIBLE);
+                                }
+                                else{
+                                    mll.getChildAt(taskNum).setVisibility(View.GONE);
+                                    mll.getChildAt(taskNum + 1).setVisibility(View.GONE);
+                                    if(Defines.isListGone(mll))
+                                        mll.setVisibility(View.GONE);;
+                                }
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+
+                            }
+                        });
+                    }
+                    if(Defines.isListGone(mll))
+                        mll.setVisibility(View.GONE);
                 }
                 break;
         }
     }
 
-    private ValueEventListener listVEL = null;
-    private void SetListListener()
-    {
-        listVEL = mRootRef.child(Defines.LISTS_FOLDER).addValueEventListener(new ValueEventListener() {
-            @Override
-            public void onDataChange(DataSnapshot dataSnapshot) {
-                if(mViewPager.getCurrentItem() == Defines.TASKS_FRAGMENT) {
+    public void RefreshTasks() {
+        if (mViewPager.getCurrentItem() == Defines.TASKS_FRAGMENT)
+            mRootRef.child(Defines.LISTS_FOLDER).addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
                     Defines.SetArrayList(mCurrentSpinnerList, dataSnapshot);
                     mArrayAdapter.notifyDataSetChanged();
-                    int i = mCurrentSpinnerList.size() - 2;
-                    mSearchOptions.setSelection(mCurrentSpinnerList.size() - 2);
+                    mSearchOptions.setSelection(0, true);
                 }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+
+                }
+            });
+    }
+
+    private ChildEventListener listCEL = null;
+    private void SetListListener()
+    {
+        listCEL = mRootRef.child(Defines.LISTS_FOLDER).addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                if (mViewPager.getCurrentItem() == Defines.TASKS_FRAGMENT)
+                    mRootRef.child(Defines.LISTS_FOLDER).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            Defines.SetArrayList(mCurrentSpinnerList, dataSnapshot);
+                            mArrayAdapter.notifyDataSetChanged();
+                            mSearchOptions.setSelection(0, true);
+                            mSearchOptions.setSelection(mCurrentSpinnerList.size() - 2, true);
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+
+                        }
+                    });
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+                RefreshTasks();
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
             }
 
             @Override
@@ -245,7 +329,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     builder.show();
                 }
                 else{
-                    mRootRef.child(Defines.LISTS_FOLDER).child(name).setValue(false);
+                    mRootRef.child(Defines.LISTS_FOLDER).child(name).setValue(true);
                 }
             }
         });
@@ -253,12 +337,24 @@ public class ProjectsActivity extends AppCompatActivity {
         builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
             @Override
             public void onClick(DialogInterface dialogInterface, int i) {
-
+                    mSearchOptions.setSelection(0, true);
             }
         });
 
         builder.show();
     }
+
+    private View.OnLongClickListener olcl = new View.OnLongClickListener() {
+        @Override
+        public boolean onLongClick(View view) {
+            if (mViewPager.getCurrentItem() == Defines.TASKS_FRAGMENT &&
+                    (mSearchOptions.getSelectedItemPosition() > 1 && mSearchOptions.getSelectedItemPosition() < mCurrentSpinnerList.size() - 1)) {
+                registerForContextMenu(view);
+                openContextMenu(view);
+            }
+            return false;
+        }
+    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -278,7 +374,8 @@ public class ProjectsActivity extends AppCompatActivity {
 
         Defines.SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.PROJECT);
         mSearchOptions = (Spinner) findViewById(R.id.searchOptions);
-        mArrayAdapter = new ArrayAdapter<String>(this, R.layout.spinner_item, mCurrentSpinnerList);
+        mArrayAdapter = new MyArrayAdapter(this, R.layout.spinner_item, mCurrentSpinnerList);
+        mArrayAdapter.SetOLCL(olcl);
         mSearchOptions.setAdapter(mArrayAdapter);
         mSearchOptions.setSelection(0);
 
@@ -317,8 +414,9 @@ public class ProjectsActivity extends AppCompatActivity {
                     Defines.SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.PROJECT);
                     mArrayAdapter.notifyDataSetChanged();
                     int temp = mSearchOptions.getSelectedItemPosition();
-                    mSearchOptions.setSelection(mSavedSpinnerPosition);
+                    mSearchOptions.setSelection(mSavedSpinnerPosition, true);
                     mSavedSpinnerPosition = temp;
+                    RefreshCurrentFragment();
                 }
                 else {
                     mRootRef.child(Defines.LISTS_FOLDER).addListenerForSingleValueEvent(new ValueEventListener() {
@@ -326,8 +424,10 @@ public class ProjectsActivity extends AppCompatActivity {
                         public void onDataChange(DataSnapshot dataSnapshot) {
                             Defines.SetArrayList(mCurrentSpinnerList, dataSnapshot);
                             mArrayAdapter.notifyDataSetChanged();
+
+                            mSearchOptions.setSelection(1, true);
                             int temp = mSearchOptions.getSelectedItemPosition();
-                            mSearchOptions.setSelection(mSavedSpinnerPosition);
+                            mSearchOptions.setSelection(mSavedSpinnerPosition, true);
                             mSavedSpinnerPosition = temp;
                         }
 
@@ -372,10 +472,14 @@ public class ProjectsActivity extends AppCompatActivity {
                 }
             }
         });
+
     }
 
     public void AddOrEditTask() {
-        AddOrEditTask(null, null, null, null, false, null);
+        ArrayList<String> list = new ArrayList<>();
+        if(mSearchOptions.getSelectedItemPosition() > 1 && mSearchOptions.getSelectedItemPosition() < mCurrentSpinnerList.size() - 1)
+            list.add("List:" + mSearchOptions.getSelectedItem().toString());
+        AddOrEditTask(null, null, null, null, false, list);
     }
 
     public void AddOrEditTask(final String name) {
@@ -436,7 +540,7 @@ public class ProjectsActivity extends AppCompatActivity {
         timeInput.setKeyListener(null);
         timeInput.setHint("Expire Time");
         timeInput.setText(time != null ? time : "");
-        if (date == null) {
+        if (date == null || date.isEmpty()) {
             timeInput.setVisibility(View.GONE);
         }
 
@@ -538,21 +642,23 @@ public class ProjectsActivity extends AppCompatActivity {
                             data.put(Defines.TASK_TIME, timeInput.getText().toString());
                             child.child(enteredName).setValue(data);
 
-                            for(int i = 0; i < attachToLL.getChildCount() - 1; ++i)
-                            {
+                            for(int i = 0; i < attachToLL.getChildCount() - 1; ++i) {
                                 DatabaseReference taskRef = child.child(enteredName);
-                                String text = ((EditText)((LinearLayout)attachToLL.getChildAt(i)).getChildAt(0)).getText().toString();
+                                String text = ((EditText) ((LinearLayout) attachToLL.getChildAt(i)).getChildAt(0)).getText().toString();
                                 String parts[] = text.split(":");
-                                if(parts[0].equals("Person")) {
+                                if (parts[0].equals("Person")) {
                                     taskRef.child(Defines.TASK_ATTACHED_PEOPLE).child(parts[1]).setValue(true);
                                     taskRef = taskRef.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
                                             .child(Defines.PEOPLE_FOLDER).child(parts[1]).child(Defines.PERSON_TASKS).child(enteredName);
                                     taskRef.setValue(true);
-                                }
-                                else {
+                                } else if (parts[0].equals("Project")) {
                                     taskRef.child(Defines.TASK_ATTACHED_PROJECTS).child(parts[1]).setValue(true);
                                     taskRef.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
                                             .child(Defines.PROJECTS_FOLDER).child(parts[1]).child(Defines.PROJECT_TASKS).child(enteredName).setValue(true);
+                                } else {
+                                    taskRef.child(Defines.TASK_ATTACHED_LISTS).child(parts[1]).setValue(true);
+                                    taskRef.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
+                                            .child(Defines.LISTS_FOLDER).child(parts[1]).child(Defines.LIST_TASKS).child(enteredName).setValue(true);
                                 }
                             }
                         }
@@ -700,8 +806,8 @@ public class ProjectsActivity extends AppCompatActivity {
         if (mAuthStateListener != null) {
             mAuth.removeAuthStateListener(mAuthStateListener);
         }
-        if (listVEL != null)
-            mRootRef.child(Defines.LISTS_FOLDER).removeEventListener(listVEL);
+        if (listCEL != null)
+            mRootRef.child(Defines.LISTS_FOLDER).removeEventListener(listCEL);
     }
 
     @Override
@@ -787,6 +893,8 @@ public class ProjectsActivity extends AppCompatActivity {
                         } else {
                             minorLL.getChildAt(i).setVisibility(View.GONE);
                             minorLL.getChildAt(i + 1).setVisibility(View.GONE);
+                            if(Defines.isListGone(minorLL))
+                                minorLL.setVisibility(View.GONE);
                         }
                     }
                 }
@@ -873,6 +981,23 @@ public class ProjectsActivity extends AppCompatActivity {
                         });
                 }
                 break;
+            case 3:
+                final String listName = last_context_selected.toString();
+                mRootRef.child(Defines.LISTS_FOLDER).child(((TextView)last_context_selected).getText().toString()).addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot) {
+                        for(DataSnapshot ds : dataSnapshot.child(Defines.LIST_TASKS).getChildren())
+                        {
+                            mRootRef.child(Defines.TASKS_FOLDER).child(ds.getKey()).child(Defines.TASK_ATTACHED_LISTS).child(listName).removeValue();
+                        }
+                        mRootRef.child(Defines.LISTS_FOLDER).child(listName).removeValue();
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+                });
         }
         return super.onContextItemSelected(item);
     }
@@ -884,10 +1009,13 @@ public class ProjectsActivity extends AppCompatActivity {
                                     View view,
                                     ContextMenu.ContextMenuInfo info) {
         last_context_selected = view;
+        menu.setHeaderTitle("Choose an action");
         if (view instanceof LinearLayout) {
-            menu.setHeaderTitle("Choose an action");
             menu.add(Menu.NONE, 1, Menu.NONE, "Open");
             menu.add(Menu.NONE, 2, Menu.NONE, "Delete");
+        }
+        else {
+            menu.add(Menu.NONE, 3, Menu.NONE, "Delete list");
         }
     }
 
@@ -919,6 +1047,7 @@ public class ProjectsActivity extends AppCompatActivity {
         private LinearLayout mWeekTasks = null;
         private LinearLayout mMonthTasks = null;
         private LinearLayout mOtherTasks = null;
+        private LinearLayout mExpiredTasks = null;
 
         private FirebaseAuth mAuth;
         private FirebaseAuth.AuthStateListener mAuthStateListener;
@@ -958,10 +1087,16 @@ public class ProjectsActivity extends AppCompatActivity {
                                 SetUpProjectsPersonList(mRootRef);
                                 break;
                             case Defines.TASKS_FRAGMENT:
+                                mLinearLayout.addView(mExpiredTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Expired"));
+                                mExpiredTasks.setVisibility(View.GONE);
                                 mLinearLayout.addView(mTodayTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Less than a day"));
+                                mTodayTasks.setVisibility(View.GONE);
                                 mLinearLayout.addView(mWeekTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "7 days"));
+                                mWeekTasks.setVisibility(View.GONE);
                                 mLinearLayout.addView(mMonthTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "30 days"));
+                                mMonthTasks.setVisibility(View.GONE);
                                 mLinearLayout.addView(mOtherTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Ton of time"));
+                                mOtherTasks.setVisibility(View.GONE);
                                 mLinearLayout.addView(ViewFactory.placeholderFactory(getActivity()));
 
                                 SetUpTaskList(mRootRef);
@@ -1083,6 +1218,16 @@ public class ProjectsActivity extends AppCompatActivity {
 
                 @Override
                 public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+                    if(dataSnapshot.child(Defines.TASK_DATE).exists() && !dataSnapshot.child(Defines.TASK_DATE).getValue(String.class).isEmpty())
+                    {
+                        String name = dataSnapshot.getKey();
+                        boolean status = Boolean.parseBoolean((String) dataSnapshot.child(Defines.TASK_STATUS).getValue());
+                        String date = (String) dataSnapshot.child(Defines.TASK_DATE).getValue();
+                        String time = (String) dataSnapshot.child(Defines.TASK_TIME).getValue();
+
+                        RemoveTaskByText(name);
+                        PrepareToAddTask(name, status, date, time);
+                    }
                 }
 
                 @Override
@@ -1108,8 +1253,12 @@ public class ProjectsActivity extends AppCompatActivity {
         }
 
         private void PrepareToAddTask(String name, boolean status, String date, String time) {
-            Defines.TaskType tt = Defines.TaskType.OTHER;
+            AddItem(name, status, GetTaskType(date, time, status));
+        }
 
+        private Defines.TaskType GetTaskType(String date, String time, boolean status)
+        {
+            Defines.TaskType tt = Defines.TaskType.OTHER;
             if (!date.isEmpty()) {
                 String[] parts = date.split("\\.");
 
@@ -1138,9 +1287,13 @@ public class ProjectsActivity extends AppCompatActivity {
                     else if (diffInDays < 30)
                         tt = Defines.TaskType.MONTH;
                 }
+                else {
+                    if(!status)
+                        tt = Defines.TaskType.EXPIRED;
+                }
             }
 
-            AddItem(name, status, tt);
+            return tt;
         }
 
         private void AddItem(String name, boolean checkBoxStatus, Defines.TaskType tt) {
@@ -1186,6 +1339,9 @@ public class ProjectsActivity extends AppCompatActivity {
                 case OTHER:
                     AddTaskToLL(ll, mOtherTasks);
                     break;
+                case EXPIRED:
+                    AddTaskToLL(ll, mExpiredTasks);
+                    break;
             }
         }
 
@@ -1228,6 +1384,9 @@ public class ProjectsActivity extends AppCompatActivity {
                     String textViewText = ((TextView) ((LinearLayout) mll.getChildAt(j)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
                     if (textViewText.equals(text)) {
                         mll.removeViews(j, 2);
+                        if(Defines.isListGone(mll)) {
+                            mll.setVisibility(View.GONE);
+                        }
                         return;
                     }
                 }

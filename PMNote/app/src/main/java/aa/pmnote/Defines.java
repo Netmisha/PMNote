@@ -2,6 +2,8 @@ package aa.pmnote;
 
 import android.text.InputFilter;
 import android.text.Spanned;
+import android.view.View;
+import android.widget.LinearLayout;
 
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
@@ -28,7 +30,8 @@ public class Defines {
         TODAY,
         WEEK,
         MONTH,
-        OTHER
+        OTHER,
+        EXPIRED,
     }
 
     final static int PROJECTS_FRAGMENT = 0;
@@ -48,7 +51,7 @@ public class Defines {
     final static String PEOPLE_FOLDER = "People";
     final static String TASKS_FOLDER = "Tasks";
     final static String PROJECTS_FOLDER = "Projects";
-    final static String LISTS_FOLDER = "List";
+    final static String LISTS_FOLDER = "Lists";
 
     final static String LIST_TASKS = TASKS_FOLDER;
 
@@ -73,7 +76,7 @@ public class Defines {
     private static ArrayList<String> taskOptions = new ArrayList<>();
     private static ArrayList<String> projectsOptions = new ArrayList<>();
 
-    final static String OPEN_TASKS = "Show open";
+    final static String OPEN_TASKS = "Open";
     final static String COMPLETED_TASKS = "Completed";
     final static String NEW_LIST = "New list";
 
@@ -131,5 +134,18 @@ public class Defines {
     static String hlinkFromEmail(String email)
     {
         return "<a href=\""+email+"\">" + email+"</a>";
+    }
+
+    static boolean isListGone(LinearLayout ll) {
+        boolean result = true;
+        if(ll.getChildCount() != 2) {
+            for (int i = 2; i < ll.getChildCount(); i += Defines.ITEM_SIZE_IN_VIEWS) {
+                if (ll.getChildAt(i).getVisibility() != View.GONE) {
+                    result = false;
+                    break;
+                }
+            }
+        }
+        return result;
     }
 }
