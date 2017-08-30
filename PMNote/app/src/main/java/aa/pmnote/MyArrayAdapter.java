@@ -27,10 +27,10 @@ public class MyArrayAdapter extends ArrayAdapter<String> {
     @Override
     public View getView(int position, View convertView, ViewGroup parent) {
         final View view = super.getView(position, convertView, parent);
-        if (convertView == null && mOLCL != null) { //set listener only for newly created view
+        /*if (convertView == null && mOLCL != null) { //set listener only for newly created view
             view.setLongClickable(true);
             view.setOnLongClickListener(mOLCL);
-        }
+        }*/
         return view;
     }
 }

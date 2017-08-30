@@ -96,12 +96,19 @@ public class ProjectsActivity extends AppCompatActivity {
 
     private Spinner mSearchOptions;
 
-    private MyArrayAdapter mArrayAdapter;
+    private ArrayAdapter<String> mArrayAdapter;
     private ArrayList<String> mCurrentSpinnerList = new ArrayList<>();
     private int mSavedSpinnerPosition = 0;
 
     public void RefreshCurrentFragment() {
         HideItemsBySearchOptions(mSearchOptions.getSelectedItemPosition());
+    }
+
+    private void RefreshTasksList()
+    {
+        int i = mSearchOptions.getSelectedItemPosition();
+        mSearchOptions.setSelection( i == 0 ? i + 1 : i - 1, true);
+        mSearchOptions.setSelection(i, true);
     }
 
     private void HideItemsBySearchOptions(int search_option) {
@@ -254,6 +261,7 @@ public class ProjectsActivity extends AppCompatActivity {
                 public void onDataChange(DataSnapshot dataSnapshot) {
                     Defines.SetArrayList(mCurrentSpinnerList, dataSnapshot);
                     mArrayAdapter.notifyDataSetChanged();
+
                     mSearchOptions.setSelection(0, true);
                 }
 
@@ -275,9 +283,11 @@ public class ProjectsActivity extends AppCompatActivity {
                         @Override
                         public void onDataChange(DataSnapshot dataSnapshot) {
                             Defines.SetArrayList(mCurrentSpinnerList, dataSnapshot);
+
                             mArrayAdapter.notifyDataSetChanged();
                             mSearchOptions.setSelection(0, true);
                             mSearchOptions.setSelection(mCurrentSpinnerList.size() - 2, true);
+                            invalidateOptionsMenu();
                         }
 
                         @Override
@@ -329,7 +339,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     builder.show();
                 }
                 else{
-                    mRootRef.child(Defines.LISTS_FOLDER).child(name).setValue(true);
+                    mRootRef.child(Defines.LISTS_FOLDER).child(name).child(Defines.LIST_PLACEHOLDER).setValue(true);
                 }
             }
         });
@@ -343,18 +353,6 @@ public class ProjectsActivity extends AppCompatActivity {
 
         builder.show();
     }
-
-    private View.OnLongClickListener olcl = new View.OnLongClickListener() {
-        @Override
-        public boolean onLongClick(View view) {
-            if (mViewPager.getCurrentItem() == Defines.TASKS_FRAGMENT &&
-                    (mSearchOptions.getSelectedItemPosition() > 1 && mSearchOptions.getSelectedItemPosition() < mCurrentSpinnerList.size() - 1)) {
-                registerForContextMenu(view);
-                openContextMenu(view);
-            }
-            return false;
-        }
-    };
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -374,8 +372,7 @@ public class ProjectsActivity extends AppCompatActivity {
 
         Defines.SetArrayList(mCurrentSpinnerList, Defines.LinearLayoutType.PROJECT);
         mSearchOptions = (Spinner) findViewById(R.id.searchOptions);
-        mArrayAdapter = new MyArrayAdapter(this, R.layout.spinner_item, mCurrentSpinnerList);
-        mArrayAdapter.SetOLCL(olcl);
+        mArrayAdapter = new ArrayAdapter<String>(this, R.layout.spinner_item, mCurrentSpinnerList);
         mSearchOptions.setAdapter(mArrayAdapter);
         mSearchOptions.setSelection(0);
 
@@ -389,7 +386,8 @@ public class ProjectsActivity extends AppCompatActivity {
                     if(((TextView)view).getText().toString().equals(Defines.NEW_LIST))
                         AddNewList();
                     else
-                        HideItemsBySearchOptions(((TextView)view).getText().toString());
+                        HideItemsBySearchOptions(((TextView) view).getText().toString());
+                    invalidateOptionsMenu();
                 }
             }
 
@@ -417,6 +415,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     mSearchOptions.setSelection(mSavedSpinnerPosition, true);
                     mSavedSpinnerPosition = temp;
                     RefreshCurrentFragment();
+                    invalidateOptionsMenu();
                 }
                 else {
                     mRootRef.child(Defines.LISTS_FOLDER).addListenerForSingleValueEvent(new ValueEventListener() {
@@ -429,6 +428,7 @@ public class ProjectsActivity extends AppCompatActivity {
                             int temp = mSearchOptions.getSelectedItemPosition();
                             mSearchOptions.setSelection(mSavedSpinnerPosition, true);
                             mSavedSpinnerPosition = temp;
+                            invalidateOptionsMenu();
                         }
 
                         @Override
@@ -507,6 +507,10 @@ public class ProjectsActivity extends AppCompatActivity {
                 {
                     for(DataSnapshot ds : dataSnapshot.child(Defines.TASK_ATTACHED_PEOPLE).getChildren())
                         attachedToList.add("Person:" + ds.getKey());
+                }
+                if(dataSnapshot.child(Defines.TASK_ATTACHED_LISTS).exists()) {
+                    for(DataSnapshot ds : dataSnapshot.child(Defines.TASK_ATTACHED_LISTS).getChildren())
+                        attachedToList.add("List:" + ds.getKey());
                 }
 
                 AddOrEditTask(name, date, time, descr, status, attachedToList);
@@ -635,6 +639,12 @@ public class ProjectsActivity extends AppCompatActivity {
                                         .child(Defines.PROJECTS_FOLDER).child(ds.getKey()).child(Defines.PROJECT_TASKS).child(enteredName).removeValue();
                             }
 
+                            for(DataSnapshot ds : dataSnapshot.child(Defines.TASK_ATTACHED_LISTS).getChildren())
+                            {
+                                child.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
+                                        .child(Defines.LISTS_FOLDER).child(ds.getKey()).child(Defines.LIST_TASKS).child(enteredName).removeValue();
+                            }
+
                             Map<String, String> data = new HashMap<String, String>();
                             data.put(Defines.TASK_STATUS, String.valueOf(status));
                             data.put(Defines.TASK_DATE, dateInput.getText().toString());
@@ -660,6 +670,7 @@ public class ProjectsActivity extends AppCompatActivity {
                                     taskRef.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
                                             .child(Defines.LISTS_FOLDER).child(parts[1]).child(Defines.LIST_TASKS).child(enteredName).setValue(true);
                                 }
+                                RefreshTasksList();
                             }
                         }
 
@@ -820,7 +831,16 @@ public class ProjectsActivity extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         //adds menu/menu_projects.xml here
-        getMenuInflater().inflate(R.menu.menu_projects, menu);
+
+        //if you viewing list
+        if(mViewPager.getCurrentItem() == Defines.TASKS_FRAGMENT &&
+                mSearchOptions.getSelectedItemPosition() > 1 &&
+                mSearchOptions.getSelectedItemPosition() < mCurrentSpinnerList.size() - 1) {
+            getMenuInflater().inflate(R.menu.menu_list_fragment, menu);
+        }
+        else {
+            getMenuInflater().inflate(R.menu.menu_projects, menu);
+        }
 
         final SearchView searchView = (SearchView) menu.findItem(R.id.action_search).getActionView();
         searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
@@ -861,6 +881,25 @@ public class ProjectsActivity extends AppCompatActivity {
             mAuth.signOut();
             return true;
         }
+        else if(id == R.id.action_delete_list) {
+            final String listName = mSearchOptions.getSelectedItem().toString();
+            mRootRef.child(Defines.LISTS_FOLDER).child(listName).addListenerForSingleValueEvent(new ValueEventListener() {
+                @Override
+                public void onDataChange(DataSnapshot dataSnapshot) {
+                    for(DataSnapshot ds : dataSnapshot.child(Defines.LIST_TASKS).getChildren()) {
+                        mRootRef.child(Defines.TASKS_FOLDER).child(ds.getKey()).child(Defines.TASK_ATTACHED_LISTS).child(listName).removeValue();
+                    }
+                    mRootRef.child(Defines.LISTS_FOLDER).child(listName).removeValue();
+                }
+
+                @Override
+                public void onCancelled(DatabaseError databaseError) {
+
+                }
+            });
+            return true;
+        }
+
 
         return super.onOptionsItemSelected(item);
     }
@@ -1015,7 +1054,7 @@ public class ProjectsActivity extends AppCompatActivity {
             menu.add(Menu.NONE, 2, Menu.NONE, "Delete");
         }
         else {
-            menu.add(Menu.NONE, 3, Menu.NONE, "Delete list");
+            menu.add(Menu.NONE, 0, Menu.NONE, "Delete list");
         }
     }
 

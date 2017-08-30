@@ -54,6 +54,7 @@ public class Defines {
     final static String LISTS_FOLDER = "Lists";
 
     final static String LIST_TASKS = TASKS_FOLDER;
+    final static String LIST_PLACEHOLDER = "placeholder";
 
     final static String TASK_STATUS = "Status";
     final static String TASK_DATE = "Date";
