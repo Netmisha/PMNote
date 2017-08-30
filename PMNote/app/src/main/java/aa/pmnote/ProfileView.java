@@ -6,17 +6,22 @@ import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.graphics.Color;
 import android.net.Uri;
 import android.os.Bundle;
 import android.provider.CalendarContract;
 import android.provider.ContactsContract;
+
+import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.calendar.Calendar;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.text.Editable;
 import android.text.Html;
+import android.text.InputFilter;
 import android.text.InputType;
 import android.text.TextWatcher;
 import android.text.method.LinkMovementMethod;
@@ -33,6 +38,7 @@ import android.widget.Button;
 import android.widget.CompoundButton;
 import android.widget.DatePicker;
 import android.widget.ImageView;
+import android.widget.ListView;
 import android.widget.ScrollView;
 import android.widget.Space;
 import android.widget.TimePicker;
@@ -53,6 +59,11 @@ import com.firebase.client.Firebase;
 import com.firebase.client.FirebaseError;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.api.client.util.DateTime;
+import com.google.api.services.calendar.model.Event;
+import com.google.api.services.calendar.model.EventAttendee;
+import com.google.api.services.calendar.model.EventDateTime;
+import com.google.api.services.calendar.model.EventReminder;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -68,19 +79,29 @@ import com.google.firebase.storage.UploadTask;
 import aa.pmnote.CustomAdapter;import aa.pmnote.R;
 
 import java.io.File;
+import java.io.IOException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Calendar;
+import java.util.Collections;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.TimeZone;
 import java.util.Vector;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static java.lang.StrictMath.toIntExact;
+
+import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.api.client.extensions.android.http.AndroidHttp;
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.JsonFactory;
+import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.calendar.CalendarScopes;
 
 public class ProfileView extends AppCompatActivity
 {
@@ -142,7 +163,7 @@ public class ProfileView extends AppCompatActivity
             }
         };
 
-
+        //------------------------------------------------------------------------------------------
         FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
         fab.setOnClickListener(new View.OnClickListener() {
 
@@ -181,7 +202,8 @@ public class ProfileView extends AppCompatActivity
                                 AddToProject();
                                 break;
                             case "Create Meeting":
-                                CreateMeeting();
+                                CreateMeetingDialog();
+//                                CreateMeeting();
                                 break;
                         }
                     }
@@ -192,6 +214,7 @@ public class ProfileView extends AppCompatActivity
             }
         });
 
+        //------------------------------------------------------------------------------------------
         ImageView avatar = (ImageView) findViewById(R.id.avatar);
         avatar.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -233,12 +256,14 @@ public class ProfileView extends AppCompatActivity
             }
         });
 
+        //------------------------------------------------------------------------------------------
         ImageView add_t = (ImageView) findViewById(R.id.add_ts);
         add_t.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {AddOrEditTask();}
         });
 
+        //------------------------------------------------------------------------------------------
         ImageView add_p = (ImageView) findViewById(R.id.add_pr);
         add_p.setOnClickListener(new View.OnClickListener() {
             @Override
@@ -260,6 +285,7 @@ public class ProfileView extends AppCompatActivity
         if (mAuthStateListener != null) {
            mAuth.removeAuthStateListener(mAuthStateListener);
         }
+        //------------------------------------------------------------------------------------------
         if(widgetsCEL != null)//Widgets
             mRootRef.child("Widgets").removeEventListener(widgetsCEL);
         if(projectsCEL != null)
@@ -318,6 +344,7 @@ public class ProfileView extends AppCompatActivity
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
 
+        //------------------------------------------------------------------------------------------
         //noinspection SimplifiableIfStatement
         if (id == R.id.set_img) {
 
@@ -330,11 +357,13 @@ public class ProfileView extends AppCompatActivity
             return true;
         }
 
+        //------------------------------------------------------------------------------------------
         if (id == R.id.set_info) {
             OpenSetInfoDialog();
             return true;
         }
 
+        //------------------------------------------------------------------------------------------
         if (id == R.id.del_usr) {
             AlertDialog.Builder ad;
             String title = "Warning !";
@@ -378,17 +407,23 @@ public class ProfileView extends AppCompatActivity
         alertDialog.setTitle("Profile Info");
         alertDialog.setMessage("Enter Person Info: ");
 
+        //inputs
+        //------------------------------------------------------------------------------------------
         final EditText name_input = new EditText(ProfileView.this);
         name_input.setText(mName);
+        name_input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
         final EditText mail_input = new EditText(ProfileView.this);
         mail_input.setText( ((TextView)findViewById(R.id.mail)).getText().toString() );
         mail_input.setInputType(InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS | InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS | InputType.TYPE_TEXT_VARIATION_EMAIL_SUBJECT);
         final EditText skype_input = new EditText(ProfileView.this);
+        skype_input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
         skype_input.setText( ((TextView)findViewById(R.id.skype)).getText().toString() );
         final EditText number_input = new EditText(ProfileView.this);
         number_input.setText( ((TextView)findViewById(R.id.number)).getText().toString() );
         number_input.setInputType(InputType.TYPE_CLASS_PHONE);
 
+        //labels
+        //------------------------------------------------------------------------------------------
         final TextView enter_n = new TextView(ProfileView.this);
         enter_n.setText("Enter name:");
         TextView enter_m = new TextView(ProfileView.this);
@@ -398,6 +433,8 @@ public class ProfileView extends AppCompatActivity
         TextView enter_number = new TextView(ProfileView.this);
         enter_number.setText("Enter phone number:");
 
+        //layout
+        //------------------------------------------------------------------------------------------
         LinearLayout info_set_layout = new LinearLayout(ProfileView.this);
         info_set_layout.setOrientation(LinearLayout.VERTICAL);
         info_set_layout.addView(enter_n);
@@ -409,6 +446,8 @@ public class ProfileView extends AppCompatActivity
         info_set_layout.addView(enter_number);
         info_set_layout.addView(number_input);
 
+        //main layout
+        //------------------------------------------------------------------------------------------
         LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT);
@@ -536,8 +575,10 @@ public class ProfileView extends AppCompatActivity
         alertDialog.setMessage("Note name:");
 
         final EditText input = new EditText(ProfileView.this);
+        input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
         TextView enter_s = new TextView(ProfileView.this);
 
+        //------------------------------------------------------------------------------------------
         enter_s.setText("Enter note name:");
         enter_s.setTextSize(15);
         LinearLayout slider_set_layout = new LinearLayout(ProfileView.this);
@@ -545,12 +586,15 @@ public class ProfileView extends AppCompatActivity
         slider_set_layout.addView(enter_s);
         slider_set_layout.addView(input);
 
+
+        //------------------------------------------------------------------------------------------
         LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT);
         input.setLayoutParams(set_lp);
         alertDialog.setView(slider_set_layout);
 
+        //------------------------------------------------------------------------------------------
         alertDialog.setPositiveButton("SET",
                 new DialogInterface.OnClickListener()
                 {
@@ -677,15 +721,19 @@ public class ProfileView extends AppCompatActivity
         alertDialog.setTitle("Checkbox");
         alertDialog.setMessage("Checkbox info:");
 
+        //------------------------------------------------------------------------------------------
         final EditText input = new EditText(ProfileView.this);
+        input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
         TextView enter_n = new TextView(ProfileView.this);
 
+        //------------------------------------------------------------------------------------------
         enter_n.setText("Enter checkbox label:");
         LinearLayout slider_set_layout = new LinearLayout(ProfileView.this);
         slider_set_layout.setOrientation(LinearLayout.VERTICAL);
         slider_set_layout.addView(enter_n);
         slider_set_layout.addView(input);
 
+        //------------------------------------------------------------------------------------------
         LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT);
@@ -745,6 +793,8 @@ public class ProfileView extends AppCompatActivity
         cb.setTextColor(Color.BLACK);
         cb.setChecked(checked);
 
+        //layout
+        //------------------------------------------------------------------------------------------
         final LinearLayout cb_layout = new LinearLayout(ProfileView.this);
         cb_layout.setOrientation(LinearLayout.VERTICAL);
         cb_layout.addView(cb);
@@ -806,7 +856,9 @@ public class ProfileView extends AppCompatActivity
         alertDialog.setTitle("SLIDER");
         alertDialog.setMessage("Slider info:");
 
+        //------------------------------------------------------------------------------------------
         final EditText input = new EditText(ProfileView.this);
+        input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
         final EditText max_input = new EditText(ProfileView.this);
         TextView enter_s = new TextView(ProfileView.this);
         TextView enter_m = new TextView(ProfileView.this);
@@ -815,6 +867,8 @@ public class ProfileView extends AppCompatActivity
                 | InputType.TYPE_NUMBER_FLAG_SIGNED);
         enter_s.setText("Enter slider name:");
         enter_m.setText("Enter max value:");
+
+        //------------------------------------------------------------------------------------------
         LinearLayout slider_set_layout = new LinearLayout(ProfileView.this);
         slider_set_layout.setOrientation(LinearLayout.VERTICAL);
         slider_set_layout.addView(enter_s);
@@ -822,6 +876,7 @@ public class ProfileView extends AppCompatActivity
         slider_set_layout.addView(enter_m);
         slider_set_layout.addView(max_input);
 
+        //------------------------------------------------------------------------------------------
         LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT);
@@ -902,6 +957,7 @@ public class ProfileView extends AppCompatActivity
             }
         });
 
+        //------------------------------------------------------------------------------------------
         LinearLayout slider_layout = new LinearLayout(ProfileView.this);
         slider_layout.setOrientation(LinearLayout.VERTICAL);
         slider_layout.addView(slider_arch.get(slider_arch.size() - 1));
@@ -952,6 +1008,7 @@ public class ProfileView extends AppCompatActivity
             }});
 
 
+        //------------------------------------------------------------------------------------------
         LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
@@ -965,17 +1022,26 @@ public class ProfileView extends AppCompatActivity
         alertDialog.setTitle("COMBOBOX");
         alertDialog.setMessage("Combobox info:");
 
+        //------------------------------------------------------------------------------------------
         final EditText input = new EditText(ProfileView.this);
+        input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
         final EditText item1 = new EditText(ProfileView.this);
+        item1.setFilters(new InputFilter[]{Defines.NAME_FILTER});
         final EditText item2 = new EditText(ProfileView.this);
+        item2.setFilters(new InputFilter[]{Defines.NAME_FILTER});
         final EditText item3 = new EditText(ProfileView.this);
+        item3.setFilters(new InputFilter[]{Defines.NAME_FILTER});
         final EditText item4 = new EditText(ProfileView.this);
+        item4.setFilters(new InputFilter[]{Defines.NAME_FILTER});
         final EditText item5 = new EditText(ProfileView.this);
+        item5.setFilters(new InputFilter[]{Defines.NAME_FILTER});
         TextView enter_s = new TextView(ProfileView.this);
         TextView enter_m = new TextView(ProfileView.this);
 
+        //------------------------------------------------------------------------------------------
         enter_s.setText("Enter combobox name:");
         enter_m.setText("Enter items:");
+        //------------------------------------------------------------------------------------------
         LinearLayout slider_set_layout = new LinearLayout(ProfileView.this);
         slider_set_layout.setOrientation(LinearLayout.VERTICAL);
         slider_set_layout.addView(enter_s);
@@ -987,12 +1053,14 @@ public class ProfileView extends AppCompatActivity
         slider_set_layout.addView(item4);
         slider_set_layout.addView(item5);
 
+        //------------------------------------------------------------------------------------------
         LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT);
         input.setLayoutParams(set_lp);
         alertDialog.setView(slider_set_layout);
 
+        //------------------------------------------------------------------------------------------
         alertDialog.setPositiveButton("SET",
                 new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, int which) {
@@ -1081,11 +1149,13 @@ public class ProfileView extends AppCompatActivity
         if(!chosen.isEmpty())
         spinner.setSelection(adapter.getPosition(chosen));
 
+        //------------------------------------------------------------------------------------------
         LinearLayout s_layout = new LinearLayout(ProfileView.this);
         s_layout.setOrientation(LinearLayout.HORIZONTAL);
         s_layout.addView(s_name);
         s_layout.addView(spinner);
 
+        //------------------------------------------------------------------------------------------
         LinearLayout s2_layout = new LinearLayout(ProfileView.this);
         s2_layout.setOrientation(LinearLayout.VERTICAL);
         s2_layout.addView(s_layout);
@@ -1437,17 +1507,20 @@ public class ProfileView extends AppCompatActivity
         android.support.v7.app.AlertDialog.Builder builder = new android.support.v7.app.AlertDialog.Builder(ProfileView.this);
         builder.setTitle("Edit task");
 
+        //------------------------------------------------------------------------------------------
         final LinearLayout ll = new LinearLayout(ProfileView.this);
         ll.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
         ll.setOrientation(LinearLayout.VERTICAL);
         ll.setGravity(Gravity.CENTER);
 
+        //------------------------------------------------------------------------------------------
         final EditText nameInput = new EditText(ProfileView.this);
         nameInput.setInputType(InputType.TYPE_CLASS_TEXT);
         nameInput.setHint("Name");
         nameInput.setText(name != null ? name : "");
         ll.addView(nameInput);
 
+        //------------------------------------------------------------------------------------------
         final EditText timeInput = new EditText(ProfileView.this);
         timeInput.setKeyListener(null);
         timeInput.setHint("Expire Time");
@@ -1459,13 +1532,13 @@ public class ProfileView extends AppCompatActivity
             @Override
             public void onFocusChange(View view, boolean b) {
                 if(b) {
-                    Calendar c = Calendar.getInstance();
+                    java.util.Calendar c = java.util.Calendar.getInstance();
                     TimePickerDialog tpd = new TimePickerDialog(ProfileView.this, new TimePickerDialog.OnTimeSetListener() {
                         @Override
                         public void onTimeSet(TimePicker timePicker, int hour, int minute) {
                             timeInput.setText(hour + ":" + minute);
                         }
-                    }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true);
+                    }, c.get(java.util.Calendar.HOUR_OF_DAY), c.get(java.util.Calendar.MINUTE), true);
                     tpd.setTitle("Pick deadline time");
                     tpd.show();
                 }
@@ -1480,17 +1553,17 @@ public class ProfileView extends AppCompatActivity
             @Override
             public void onFocusChange(View view, boolean b) {
                 if(b) {
-                    Calendar c = Calendar.getInstance();
+                    java.util.Calendar c = java.util.Calendar.getInstance();
                     DatePickerDialog dpd = new DatePickerDialog(ProfileView.this, new DatePickerDialog.OnDateSetListener() {
                         @Override
                         public void onDateSet(DatePicker datePicker, int year, int month, int day) {
-                            Calendar date = Calendar.getInstance();
+                            java.util.Calendar date = java.util.Calendar.getInstance();
                             date.set(year, month, day);
                             SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.ENGLISH);
                             dateInput.setText(sdf.format(date.getTime()));
                             timeInput.setVisibility(View.VISIBLE);
                         }
-                    }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DATE));
+                    }, c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH), c.get(java.util.Calendar.DATE));
                     dpd.setTitle("Pick deadline date.");
                     dpd.show();
                 }
@@ -1629,9 +1702,286 @@ public class ProfileView extends AppCompatActivity
         });
     }
 
+    GoogleAccountCredential credential;
+
     private void CreateMeeting()
     {
-        mAuth.getCurrentUser().getEmail();
-        CalendarContract.Events events ;
+        credential =
+                GoogleAccountCredential.usingOAuth2(this, Collections.singleton(CalendarScopes.CALENDAR));
+
+
+    }
+
+    public void createEvent(GoogleAccountCredential mCredential) {
+
+        HttpTransport transport = AndroidHttp.newCompatibleTransport();
+        JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+        com.google.api.services.calendar.Calendar service = new com.google.api.services.calendar.Calendar.Builder(
+                transport, jsonFactory, mCredential)
+                .setApplicationName("PMNote")
+                .build();
+
+
+        Event event = new Event()
+                .setSummary("Event- April 2016")
+                .setLocation("Dhaka")
+                .setDescription("New Event 1");
+
+        DateTime startDateTime = new DateTime("2016-04-17T18:10:00+06:00");
+        EventDateTime start = new EventDateTime()
+                .setDateTime(startDateTime)
+                .setTimeZone("Asia/Dhaka");
+        event.setStart(start);
+
+        DateTime endDateTime = new DateTime("2016-04-17T18:40:00+06:00");
+        EventDateTime end = new EventDateTime()
+                .setDateTime(endDateTime)
+                .setTimeZone("Asia/Dhaka");
+        event.setEnd(end);
+
+        String[] recurrence = new String[]{"RRULE:FREQ=DAILY;COUNT=2"};
+        event.setRecurrence(Arrays.asList(recurrence));
+
+        EventAttendee[] attendees = new EventAttendee[]{
+                new EventAttendee().setEmail("abir@aksdj.com"),
+                new EventAttendee().setEmail("asdasd@andlk.com"),
+        };
+        event.setAttendees(Arrays.asList(attendees));
+
+        EventReminder[] reminderOverrides = new EventReminder[]{
+                new EventReminder().setMethod("email").setMinutes(24 * 60),
+                new EventReminder().setMethod("popup").setMinutes(10),
+        };
+        Event.Reminders reminders = new Event.Reminders()
+                .setUseDefault(false)
+                .setOverrides(Arrays.asList(reminderOverrides));
+        event.setReminders(reminders);
+
+        String calendarId = "primary";
+        try {
+            event = service.events().insert(calendarId, event).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.printf("Event created: %s\n", event.getHtmlLink());
+
+    }
+
+    private void CreateMeetingDialog()
+    {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(ProfileView.this);
+        alertDialog.setTitle("MEETING");
+        alertDialog.setMessage("Meeting info:");
+
+        //------------------------------------------------------------------------------------------
+        final EditText input_name = new EditText(ProfileView.this);
+        input_name.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+
+        //------------------------------------------------------------------------------------------
+        final EditText input_time = new EditText(ProfileView.this);
+
+        input_time.setKeyListener(null);
+        input_time.setHint("Meeting Time");
+        input_time.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if(b) {
+                    java.util.Calendar c = java.util.Calendar.getInstance();
+                    TimePickerDialog tpd = new TimePickerDialog(ProfileView.this, new TimePickerDialog.OnTimeSetListener() {
+                        @Override
+                        public void onTimeSet(TimePicker timePicker, int hour, int minute) {
+                            input_time.setText(hour + ":" + minute);
+                        }
+                    }, c.get(java.util.Calendar.HOUR_OF_DAY), c.get(java.util.Calendar.MINUTE), true);
+                    tpd.setTitle("Pick meeting time");
+                    tpd.show();
+                }
+            }
+        });
+        //------------------------------------------------------------------------------------------
+        final EditText input_date = new EditText(ProfileView.this);
+        input_date.setKeyListener(null);
+        input_date.setHint("Meeting Date");
+        input_date.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if(b) {
+                    java.util.Calendar c = java.util.Calendar.getInstance();
+                    DatePickerDialog dpd = new DatePickerDialog(ProfileView.this, new DatePickerDialog.OnDateSetListener() {
+                        @Override
+                        public void onDateSet(DatePicker datePicker, int year, int month, int day) {
+                            java.util.Calendar date = java.util.Calendar.getInstance();
+                            date.set(year, month, day);
+                            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.ENGLISH);
+                            input_date.setText(sdf.format(date.getTime()));
+                        }
+                    }, c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH), c.get(java.util.Calendar.DATE));
+                    dpd.setTitle("Pick deadline date.");
+                    dpd.show();
+                }
+            }
+        });
+
+        //------------------------------------------------------------------------------------------
+        final EditText input_duration = new EditText(ProfileView.this);
+        input_duration.setInputType(InputType.TYPE_CLASS_NUMBER
+                | InputType.TYPE_NUMBER_FLAG_SIGNED);
+
+        input_duration.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+            }
+        });
+
+        //------------------------------------------------------------------------------------------
+        final EditText input_place = new EditText(ProfileView.this);
+
+        //------------------------------------------------------------------------------------------
+        final Vector<EditText> input_attendees = new Vector<EditText>();
+
+        //------------------------------------------------------------------------------------------
+        final LinearLayout set_layout = new LinearLayout(ProfileView.this);
+        set_layout.setOrientation(LinearLayout.VERTICAL);
+        //layout
+        final EditText input_attendees_num = new EditText(ProfileView.this);
+        input_attendees_num.setInputType(InputType.TYPE_CLASS_NUMBER
+                | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        input_attendees_num.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable)
+            {
+                if (!input_attendees_num.getText().toString().isEmpty())
+                {
+                    Integer a_num = Integer.parseInt(input_attendees_num.getText().toString());
+                    Integer vector_size = input_attendees.size();
+
+                    if (a_num > vector_size) {
+                        do {
+                            final EditText i_attendee = new EditText(ProfileView.this);
+                            input_attendees.addElement(i_attendee);
+                            set_layout.addView(i_attendee);
+                        } while (input_attendees.size() != a_num);
+                    } else if (a_num < vector_size) {
+                        do {
+                            set_layout.removeView(input_attendees.get(input_attendees.size() - 1));
+                            input_attendees.remove(input_attendees.size() - 1);
+                        } while (input_attendees.size() != a_num);
+                    }
+                }
+            }
+        });
+
+        //------------------------------------------------------------------------------------------
+        final EditText input_description = new EditText(ProfileView.this);
+        input_description.setHint("Enter Description");
+
+        //------------------------------------------------------------------------------------------
+        TextView enter_n = new TextView(ProfileView.this);
+        enter_n.setText("Enter meeting name:");
+        TextView enter_d = new TextView(ProfileView.this);
+        enter_d.setText("Enter date:");
+        TextView enter_t = new TextView(ProfileView.this);
+        enter_t.setText("Enter time:");
+        TextView enter_drt = new TextView(ProfileView.this);
+        enter_drt.setText("Meeting duration:");
+        TextView enter_p = new TextView(ProfileView.this);
+        enter_p.setText("Enter place:");
+        TextView enter_desc = new TextView(ProfileView.this);
+        enter_desc.setText("Description (minutes):");
+        TextView enter_num = new TextView(ProfileView.this);
+        enter_num.setText("Enter number of attendees:");
+        TextView enter_atnd = new TextView(ProfileView.this);
+        enter_atnd.setText("Choose attendees:");
+
+        TextView already = new TextView(ProfileView.this);
+        already.setText(mName + "is invited to the meeting.");
+        already.setTextColor(Color.GREEN);
+        already.setTextSize(15);
+
+
+        //------------------------------------------------------------------------------------------
+        set_layout.addView(enter_n);
+        set_layout.addView(input_name);
+        set_layout.addView(enter_t);
+        set_layout.addView(input_date);
+        set_layout.addView(enter_d);
+        set_layout.addView(input_time);
+        set_layout.addView(enter_drt);
+        set_layout.addView(input_duration);
+        set_layout.addView(enter_p);
+        set_layout.addView(input_place);
+        set_layout.addView(enter_desc);
+        set_layout.addView(input_description);
+        set_layout.addView(enter_num);
+        set_layout.addView(input_attendees_num);
+        set_layout.addView(enter_atnd);
+        set_layout.addView(already);
+
+
+
+
+
+
+        LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        ScrollView sv = new ScrollView(ProfileView.this);
+        sv.addView(set_layout, set_lp);
+        alertDialog.setView(sv);
+
+        alertDialog.setPositiveButton("SET",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+
+
+                        if(!input_name.getText().toString().isEmpty() )
+                        {
+                            mRootRef.child("Meetings").child(input_name.getText().toString()).setValue(true);
+                           // mRootRef.child("Widgets").child(input.getText().toString()).child("Max_Num").setValue(Integer.parseInt(max_input.getText().toString()));
+                         //   mRootRef.child("Widgets").child(input.getText().toString()).child("Cur_Num").setValue(0);
+                          //  SetSeekBar(input.getText().toString(), Integer.parseInt(max_input.getText().toString()), 0);
+
+                        }
+                        else
+                        {
+                            Toast.makeText(getApplicationContext(), "All fields except descriptions and additional participants are required.", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
+        alertDialog.setNegativeButton("NO",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        dialog.cancel();
+                    }
+                });
+
+        alertDialog.show();
+
     }
 }
+
