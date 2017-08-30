@@ -106,72 +106,158 @@ public class ProjectsActivity extends AppCompatActivity {
 
     private void HideItemsBySearchOptions(int search_option) {
         LinearLayout ll = mSectionsPagerAdapter.getFragment(mViewPager.getCurrentItem()).GetLinearLayout();
-        if (mViewPager.getCurrentItem() == 0) {
-            switch (search_option) {
-                case 0:
-                    for (int i = 0; i < ll.getChildCount() - 1; ++i) {
+        switch (search_option) {
+            case 0:
+                for (int i = 0; i < ll.getChildCount() - 1; ++i) {
+                    ll.getChildAt(i).setVisibility(View.VISIBLE);
+                }
+                break;
+            case 1:
+                for (int i = 0; i < ll.getChildCount() - 1; i += 2) {
+                    boolean isProject = Defines.LinearLayoutType.PROJECT == ((ImageView) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
+                    if (!isProject) {
+                        ll.getChildAt(i).setVisibility(View.GONE);
+                        ll.getChildAt(i + 1).setVisibility(View.GONE);
+                    } else {
                         ll.getChildAt(i).setVisibility(View.VISIBLE);
+                        ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
                     }
-                    break;
-                case 1:
-                    for (int i = 0; i < ll.getChildCount() - 1; i += 2) {
-                        boolean isProject = Defines.LinearLayoutType.PROJECT == ((ImageView) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
-                        if (!isProject) {
-                            ll.getChildAt(i).setVisibility(View.GONE);
-                            ll.getChildAt(i + 1).setVisibility(View.GONE);
-                        } else {
-                            ll.getChildAt(i).setVisibility(View.VISIBLE);
-                            ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
-                        }
+                }
+                break;
+            case 2:
+                for (int i = 0; i < ll.getChildCount() - 1; i += 2) {
+                    boolean isProject = Defines.LinearLayoutType.PERSON == ((ImageView) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
+                    if (!isProject) {
+                        ll.getChildAt(i).setVisibility(View.GONE);
+                        ll.getChildAt(i + 1).setVisibility(View.GONE);
+                    } else {
+                        ll.getChildAt(i).setVisibility(View.VISIBLE);
+                        ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
                     }
-                    break;
-                case 2:
-                    for (int i = 0; i < ll.getChildCount() - 1; i += 2) {
-                        boolean isProject = Defines.LinearLayoutType.PERSON == ((ImageView) ((LinearLayout) ll.getChildAt(i)).getChildAt(0)).getTag();
-                        if (!isProject) {
-                            ll.getChildAt(i).setVisibility(View.GONE);
-                            ll.getChildAt(i + 1).setVisibility(View.GONE);
-                        } else {
-                            ll.getChildAt(i).setVisibility(View.VISIBLE);
-                            ll.getChildAt(i + 1).setVisibility(View.VISIBLE);
-                        }
-                    }
-                    break;
-            }
-        } else {
-            switch (search_option) {
-                case 0:
-                    for (int j = 0; j < ll.getChildCount() - 1; ++j) {
-                        LinearLayout mll = (LinearLayout) ll.getChildAt(j);
-                        for (int i = 2; i < mll.getChildCount(); i += 2) {
-                            boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(i)).getChildAt(0)).isChecked();
-                            if (isCompeted) {
-                                mll.getChildAt(i).setVisibility(View.GONE);
-                                mll.getChildAt(i + 1).setVisibility(View.GONE);
-                            } else {
-                                mll.getChildAt(i).setVisibility(View.VISIBLE);
-                                mll.getChildAt(i + 1).setVisibility(View.VISIBLE);
-                            }
-                        }
-                    }
-                    break;
-                case 1:
-                    for (int j = 0; j < ll.getChildCount() - 1; ++j) {
-                        LinearLayout mll = (LinearLayout) ll.getChildAt(j);
-                        for (int i = 2; i < mll.getChildCount(); i += 2) {
-                            boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(i)).getChildAt(0)).isChecked();
-                            if (!isCompeted) {
-                                mll.getChildAt(i).setVisibility(View.GONE);
-                                mll.getChildAt(i + 1).setVisibility(View.GONE);
-                            } else {
-                                mll.getChildAt(i).setVisibility(View.VISIBLE);
-                                mll.getChildAt(i + 1).setVisibility(View.VISIBLE);
-                            }
-                        }
-                    }
-                    break;
-            }
+                }
+                break;
         }
+    }
+
+    private void HideItemsBySearchOptions(String list) {
+
+        LinearLayout ll = mSectionsPagerAdapter.getFragment(mViewPager.getCurrentItem()).GetLinearLayout();
+        switch (list) {
+            case Defines.OPEN_TASKS:
+                for (int j = 0; j < ll.getChildCount() - 1; ++j) {
+                    final LinearLayout mll = (LinearLayout) ll.getChildAt(j);
+                    for (int i = 2; i < mll.getChildCount(); i += 2) {
+                        String taskName = ((TextView)((LinearLayout) mll.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                        final int taskNum = i;
+                        mRootRef.child(Defines.TASKS_FOLDER).child(taskName).addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                boolean isInList = dataSnapshot.child(Defines.TASK_ATTACHED_LISTS).exists();
+                                boolean isCompleted = Boolean.parseBoolean(dataSnapshot.child(Defines.TASK_STATUS).getValue(String.class));
+                                if(!isInList && !isCompleted) {
+                                    mll.getChildAt(taskNum).setVisibility(View.VISIBLE);
+                                    mll.getChildAt(taskNum + 1).setVisibility(View.VISIBLE);
+                                }
+                                else{
+                                    mll.getChildAt(taskNum).setVisibility(View.GONE);
+                                    mll.getChildAt(taskNum + 1).setVisibility(View.GONE);
+                                }
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+
+                            }
+                        });
+                    }
+                }
+                break;
+            case Defines.COMPLETED_TASKS:
+                for (int j = 0; j < ll.getChildCount() - 1; ++j) {
+                    final LinearLayout mll = (LinearLayout) ll.getChildAt(j);
+                    for (int i = 2; i < mll.getChildCount(); i += 2) {
+                        String taskName = ((TextView)((LinearLayout) mll.getChildAt(i)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
+                        final int taskNum = i;
+                        mRootRef.child(Defines.TASKS_FOLDER).child(taskName).addListenerForSingleValueEvent(new ValueEventListener() {
+                            @Override
+                            public void onDataChange(DataSnapshot dataSnapshot) {
+                                boolean isInList = dataSnapshot.child(Defines.TASK_ATTACHED_LISTS).exists();
+                                boolean isCompleted = Boolean.parseBoolean(dataSnapshot.child(Defines.TASK_STATUS).getValue(String.class));
+                                if(!isInList && isCompleted) {
+                                    mll.getChildAt(taskNum).setVisibility(View.VISIBLE);
+                                    mll.getChildAt(taskNum + 1).setVisibility(View.VISIBLE);
+                                }
+                                else{
+                                    mll.getChildAt(taskNum).setVisibility(View.GONE);
+                                    mll.getChildAt(taskNum + 1).setVisibility(View.GONE);
+                                }
+                            }
+
+                            @Override
+                            public void onCancelled(DatabaseError databaseError) {
+
+                            }
+                        });
+                    }
+                }
+                break;
+        }
+    }
+
+    private ValueEventListener listVEL = null;
+    private void SetListListener()
+    {
+        listVEL = mRootRef.child(Defines.LISTS_FOLDER).addValueEventListener(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                if(mViewPager.getCurrentItem() == Defines.TASKS_FRAGMENT) {
+                    Defines.SetArrayList(mCurrentSpinnerList, dataSnapshot);
+                    mArrayAdapter.notifyDataSetChanged();
+                    int i = mCurrentSpinnerList.size() - 2;
+                    mSearchOptions.setSelection(mCurrentSpinnerList.size() - 2);
+                }
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    private void AddNewList()
+    {
+        final AlertDialog.Builder builder = new AlertDialog.Builder(ProjectsActivity.this);
+        builder.setTitle("Enter list name");
+        final EditText et = new EditText(ProjectsActivity.this);
+        et.setInputType(InputType.TYPE_CLASS_TEXT);
+        et.setHint("Name");
+        et.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+
+        builder.setView(et);
+
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+                String name = et.getText().toString();
+                if(name.isEmpty()) {
+                    Toast.makeText(ProjectsActivity.this, "Name is empty", Toast.LENGTH_SHORT).show();
+                    builder.show();
+                }
+                else{
+                    mRootRef.child(Defines.LISTS_FOLDER).child(name).setValue(false);
+                }
+            }
+        });
+
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialogInterface, int i) {
+
+            }
+        });
+
+        builder.show();
     }
 
     @Override
@@ -199,7 +285,15 @@ public class ProjectsActivity extends AppCompatActivity {
         mSearchOptions.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
             @Override
             public void onItemSelected(AdapterView<?> adapterView, View view, int position, long id) {
-                HideItemsBySearchOptions(position);
+                if(mViewPager.getCurrentItem() == Defines.PROJECTS_FRAGMENT) {
+                    HideItemsBySearchOptions(position);
+                }
+                else {
+                    if(((TextView)view).getText().toString().equals(Defines.NEW_LIST))
+                        AddNewList();
+                    else
+                        HideItemsBySearchOptions(((TextView)view).getText().toString());
+                }
             }
 
             @Override
@@ -260,6 +354,7 @@ public class ProjectsActivity extends AppCompatActivity {
                 } else {
                     String uid = firebaseAuth.getCurrentUser().getUid();
                     mRootRef = FirebaseDatabase.getInstance().getReference().child(Defines.USERS_FOLDER).child(uid);
+                    SetListListener();
                 }
             }
         };
@@ -330,24 +425,12 @@ public class ProjectsActivity extends AppCompatActivity {
         ll.setOrientation(LinearLayout.VERTICAL);
         ll.setGravity(Gravity.CENTER);
 
-        InputFilter nameFilter = new InputFilter() {
-            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
-                for (int i = start;i < end;i++) {
-                    if (!Character.isLetterOrDigit(source.charAt(i)) && !Character.toString(source.charAt(i)).equals("_") && !Character.toString(source.charAt(i)).equals("-")
-                            && !Character.toString(source.charAt(i)).equals(" ")) {
-                        return "";
-                    }
-                }
-                return null;
-            }
-        };
-
         final EditText nameInput = new EditText(ProjectsActivity.this);
         nameInput.setInputType(InputType.TYPE_CLASS_TEXT);
         nameInput.setHint("Name");
         nameInput.setText(name != null ? name : "");
         ll.addView(nameInput);
-        nameInput.setFilters(new InputFilter[] { nameFilter });
+        nameInput.setFilters(new InputFilter[] { Defines.NAME_FILTER });
 
         final EditText timeInput = new EditText(ProjectsActivity.this);
         timeInput.setKeyListener(null);
@@ -511,24 +594,12 @@ public class ProjectsActivity extends AppCompatActivity {
         ll.setOrientation(LinearLayout.VERTICAL);
         ll.setGravity(Gravity.CENTER);
 
-        InputFilter nameFilter = new InputFilter() {
-            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
-                for (int i = start;i < end;i++) {
-                    if (!Character.isLetterOrDigit(source.charAt(i)) && !Character.toString(source.charAt(i)).equals("_") && !Character.toString(source.charAt(i)).equals("-")
-                        && !Character.toString(source.charAt(i)).equals(" ")) {
-                        return "";
-                    }
-                }
-                return null;
-            }
-        };
-
         final EditText input = new EditText(ProjectsActivity.this);
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         input.setHint("Name");
         if(name != null)
             input.setText(name);
-        input.setFilters(new InputFilter[] { nameFilter });
+        input.setFilters(new InputFilter[] { Defines.NAME_FILTER });
 
         final Spinner spinner = new Spinner(ProjectsActivity.this);
         final TextView tv = new TextView(ProjectsActivity.this);
@@ -629,6 +700,8 @@ public class ProjectsActivity extends AppCompatActivity {
         if (mAuthStateListener != null) {
             mAuth.removeAuthStateListener(mAuthStateListener);
         }
+        if (listVEL != null)
+            mRootRef.child(Defines.LISTS_FOLDER).removeEventListener(listVEL);
     }
 
     @Override
@@ -1057,12 +1130,14 @@ public class ProjectsActivity extends AppCompatActivity {
                 TimeUnit tu = TimeUnit.DAYS;
                 long diffInDays = tu.convert(diffInMS, TimeUnit.MILLISECONDS);
 
-                if (diffInDays <= 1)
-                    tt = Defines.TaskType.TODAY;
-                else if (diffInDays < 7)
-                    tt = Defines.TaskType.WEEK;
-                else if (diffInDays < 30)
-                    tt = Defines.TaskType.MONTH;
+                if(diffInMS > 0) {
+                    if (diffInDays <= 1)
+                        tt = Defines.TaskType.TODAY;
+                    else if (diffInDays < 7)
+                        tt = Defines.TaskType.WEEK;
+                    else if (diffInDays < 30)
+                        tt = Defines.TaskType.MONTH;
+                }
             }
 
             AddItem(name, status, tt);
@@ -1114,11 +1189,6 @@ public class ProjectsActivity extends AppCompatActivity {
             }
         }
 
-        private void CheckIfLLIsEmpty(LinearLayout ll) {
-            if (ll.getChildCount() == 2)
-                ll.setVisibility(View.GONE);
-        }
-
         private void AddTaskToLL(LinearLayout task, LinearLayout whereAdd) {
             whereAdd.addView(task);
             whereAdd.addView(ViewFactory.horizontalDividerFactory(getActivity()));
@@ -1158,7 +1228,6 @@ public class ProjectsActivity extends AppCompatActivity {
                     String textViewText = ((TextView) ((LinearLayout) mll.getChildAt(j)).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
                     if (textViewText.equals(text)) {
                         mll.removeViews(j, 2);
-                        CheckIfLLIsEmpty(mll);
                         return;
                     }
                 }

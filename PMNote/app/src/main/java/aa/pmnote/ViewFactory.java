@@ -131,7 +131,6 @@ public class ViewFactory {
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
         ll.setGravity(Gravity.CENTER);
         ll.setLayoutParams(lp);
-        ll.setVisibility(View.GONE);
         ll.setPadding(0, 0, 0, 5);
 
         TextView tv = new TextView(context);

@@ -165,22 +165,10 @@ public class ProjectsView extends AppCompatActivity {
         ll.setOrientation(LinearLayout.VERTICAL);
         ll.setGravity(Gravity.CENTER);
 
-        InputFilter nameFilter = new InputFilter() {
-            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
-                for (int i = start;i < end;i++) {
-                    if (!Character.isLetterOrDigit(source.charAt(i)) && !Character.toString(source.charAt(i)).equals("_") && !Character.toString(source.charAt(i)).equals("-")
-                            && !Character.toString(source.charAt(i)).equals(" ")) {
-                        return "";
-                    }
-                }
-                return null;
-            }
-        };
-
         final EditText input = new EditText(ProjectsView.this);
         input.setInputType(InputType.TYPE_CLASS_TEXT);
         input.setHint("Name");
-        input.setFilters(new InputFilter[]{nameFilter});
+        input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
         if(name != null)
             input.setText(name);
 
@@ -286,24 +274,12 @@ public class ProjectsView extends AppCompatActivity {
         ll.setOrientation(LinearLayout.VERTICAL);
         ll.setGravity(Gravity.CENTER);
 
-        InputFilter nameFilter = new InputFilter() {
-            public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
-                for (int i = start; i < end; i++) {
-                    if (!Character.isLetterOrDigit(source.charAt(i)) && !Character.toString(source.charAt(i)).equals("_") && !Character.toString(source.charAt(i)).equals("-")
-                            && !Character.toString(source.charAt(i)).equals(" ")) {
-                        return "";
-                    }
-                }
-                return null;
-            }
-        };
-
         final EditText nameInput = new EditText(ProjectsView.this);
         nameInput.setInputType(InputType.TYPE_CLASS_TEXT);
         nameInput.setHint("Name");
         nameInput.setText(name != null ? name : "");
         ll.addView(nameInput);
-        nameInput.setFilters(new InputFilter[]{nameFilter});
+        nameInput.setFilters(new InputFilter[]{Defines.NAME_FILTER});
 
         final EditText timeInput = new EditText(ProjectsView.this);
         timeInput.setKeyListener(null);

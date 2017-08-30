@@ -1,5 +1,8 @@
 package aa.pmnote;
 
+import android.text.InputFilter;
+import android.text.Spanned;
+
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -55,6 +58,7 @@ public class Defines {
     final static String TASK_DESCR = "Description";
     final static String TASK_ATTACHED_PEOPLE = PEOPLE_FOLDER;
     final static String TASK_ATTACHED_PROJECTS = PROJECTS_FOLDER;
+    final static String TASK_ATTACHED_LISTS = LISTS_FOLDER;
 
     final static String PROJECT_PLACEHOLDER = "placeholder";
     final static String PROJECT_TASKS = TASKS_FOLDER;
@@ -69,13 +73,30 @@ public class Defines {
     private static ArrayList<String> taskOptions = new ArrayList<>();
     private static ArrayList<String> projectsOptions = new ArrayList<>();
 
+    final static String OPEN_TASKS = "Show open";
+    final static String COMPLETED_TASKS = "Completed";
+    final static String NEW_LIST = "New list";
+
+    final static InputFilter NAME_FILTER = new InputFilter() {
+        public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
+            for (int i = start;i < end;i++) {
+                if (!Character.isLetterOrDigit(source.charAt(i)) && !Character.toString(source.charAt(i)).equals("_") && !Character.toString(source.charAt(i)).equals("-")
+                        && !Character.toString(source.charAt(i)).equals(" ")) {
+                    return "";
+                }
+            }
+            return null;
+        }
+    };
+
     static void SetArrayList(final ArrayList<String> list, DataSnapshot listFolder) {
         list.clear();
-        list.add("Show open");
-        list.add("Completed");
+        list.add(OPEN_TASKS);
+        list.add(COMPLETED_TASKS);
         for (DataSnapshot ds : listFolder.getChildren()) {
             list.add(ds.getKey());
         }
+        list.add(NEW_LIST);
     }
 
     static void SetArrayList(ArrayList<String> list, Defines.LinearLayoutType llt)
