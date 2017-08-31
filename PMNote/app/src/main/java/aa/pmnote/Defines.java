@@ -84,6 +84,7 @@ public class Defines {
     final static String NEW_LIST = "New list";
 
     final static String NO_TASKS_TEXT = "Nothing, great job!";
+    final static String NOTIFICATION_FLAG = "NF";
 
     final static InputFilter NAME_FILTER = new InputFilter() {
         public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
@@ -161,7 +162,7 @@ public class Defines {
     static Defines.TaskType GetTaskType(String date, String time, boolean status)
     {
         Defines.TaskType tt = Defines.TaskType.OTHER;
-        if (!date.isEmpty()) {
+        if (!date.isEmpty() && !status) {
             String[] parts = date.split("\\.");
 
             String s = parts[0];

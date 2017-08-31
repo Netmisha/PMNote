@@ -72,6 +72,7 @@ import java.util.Date;
 import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Random;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Pattern;
 
@@ -110,7 +111,7 @@ public class ProjectsActivity extends AppCompatActivity {
     private final static int mNotificationID = 0;
     private NotificationCompat.Builder mNotificationBuilder = null;
     private NotificationManager mNotificationManager = null;
-    private ArrayList<String> mTodayTasks = new ArrayList<>();
+    private int mTodayTasks = 0;
 
     public void RefreshCurrentFragment() {
         HideItemsBySearchOptions(mSearchOptions.getSelectedItemPosition());
@@ -285,15 +286,11 @@ public class ProjectsActivity extends AppCompatActivity {
     }
 
     public void updateNotification() {
-        String notificationText = "";
-        for(int i = 0; i < mTodayTasks.size(); ++i) {
-            notificationText += mTodayTasks.get(i);
-            if(i != mTodayTasks.size() - 1)
-                notificationText += System.lineSeparator();
-        }
+        String notificationText = (mTodayTasks == 0 ? "" : mTodayTasks + " Task" + (mTodayTasks != 1 ? "s" : ""));
 
-        if(notificationText.isEmpty())mNotificationBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText(Defines.NO_TASKS_TEXT))
-                .setContentText(Defines.NO_TASKS_TEXT);
+        if (notificationText.isEmpty())
+            mNotificationBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText(Defines.NO_TASKS_TEXT))
+                    .setContentText(Defines.NO_TASKS_TEXT);
         else {
             mNotificationBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText(notificationText))
                     .setContentText(notificationText);
@@ -302,17 +299,23 @@ public class ProjectsActivity extends AppCompatActivity {
         mNotificationManager.notify(mNotificationID, mNotificationBuilder.build());
     }
 
-    public void removeFromNotification(String taskName, String taskTime) {
-        mTodayTasks.remove(Defines.StringFromTaskNameAndTime(taskName, taskTime));
+    public void removeFromNotification() {
+        mTodayTasks--;
         updateNotification();
     }
 
-    public void addToNotification(String taskName, String taskTime) {
-        mTodayTasks.add(Defines.StringFromTaskNameAndTime(taskName, taskTime));
+    public void addToNotification() {
+        mTodayTasks++;
         updateNotification();
     }
 
     public void showNotification() {
+        Intent intent = new Intent(ProjectsActivity.this, ProjectsActivity.class);
+        intent.putExtra(Defines.NOTIFICATION_FLAG, true);
+        Random generator = new Random();
+
+        PendingIntent pi = PendingIntent.getActivity(ProjectsActivity.this, generator.nextInt(), intent, PendingIntent.FLAG_UPDATE_CURRENT);
+
         mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         mNotificationBuilder = new NotificationCompat.Builder(ProjectsActivity.this)
                 .setSmallIcon(android.R.drawable.ic_menu_report_image)
@@ -320,7 +323,8 @@ public class ProjectsActivity extends AppCompatActivity {
                 .setContentTitle("Today tasks")
                 .setContentText(Defines.NO_TASKS_TEXT)
                 .setAutoCancel(true)
-                .setOngoing(true);
+                .setOngoing(true)
+                .setContentIntent(pi);
 
         mNotificationManager.notify(mNotificationID, mNotificationBuilder.build());
     }
@@ -483,6 +487,8 @@ public class ProjectsActivity extends AppCompatActivity {
                             mSearchOptions.setSelection(mSavedSpinnerPosition, true);
                             mSavedSpinnerPosition = temp;
                             invalidateOptionsMenu();
+                            if(getIntent().getBooleanExtra(Defines.NOTIFICATION_FLAG, false))
+                                mSearchOptions.setSelection(0);
                         }
 
                         @Override
@@ -509,6 +515,10 @@ public class ProjectsActivity extends AppCompatActivity {
                     mUID = firebaseAuth.getCurrentUser().getUid();
                     mRootRef = FirebaseDatabase.getInstance().getReference().child(Defines.USERS_FOLDER).child(mUID);
                     SetListListener();
+
+                    if(getIntent().getBooleanExtra(Defines.NOTIFICATION_FLAG, false)){
+                        mViewPager.setCurrentItem(Defines.TASKS_FRAGMENT);
+                    }
                 }
             }
         };
@@ -1334,7 +1344,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     String time = dataSnapshot.child(Defines.TASK_TIME).getValue(String.class);
                     String name = dataSnapshot.getKey();
                     if(Defines.GetTaskType(date, time, status) == Defines.TaskType.TODAY)
-                        ((ProjectsActivity)getActivity()).removeFromNotification(name, time);
+                        ((ProjectsActivity)getActivity()).removeFromNotification();
                 }
 
                 @Override
@@ -1357,7 +1367,7 @@ public class ProjectsActivity extends AppCompatActivity {
         private void PrepareToAddTask(String name, boolean status, String date, String time) {
             AddItem(name, status, Defines.GetTaskType(date, time, status));
             if(Defines.GetTaskType(date, time, status) == Defines.TaskType.TODAY)
-                ((ProjectsActivity)getActivity()).addToNotification(name, time);
+                ((ProjectsActivity)getActivity()).addToNotification();
         }
 
         private void AddItem(String name, boolean checkBoxStatus, Defines.TaskType tt) {
@@ -1386,10 +1396,19 @@ public class ProjectsActivity extends AppCompatActivity {
                 public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                     String name = (String) ((CheckBox) ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).getTag();
                     mRootRef.child(Defines.TASKS_FOLDER).child(name).child(Defines.TASK_STATUS).setValue(String.valueOf(b));
-                    if(b)
+
+                    String text = ((TextView)((LinearLayout)ll.getParent()).getChildAt(0)).getText().toString();
+
+                    if(b) {
                         Toast.makeText(getActivity(), "Moving task to Completed", Toast.LENGTH_SHORT).show();
-                    else
+                        if(((TextView)((LinearLayout)ll.getParent()).getChildAt(0)).getText().toString().equals("Today"))
+                            ((ProjectsActivity)getActivity()).removeFromNotification();
+                    }
+                    else {
                         Toast.makeText(getActivity(), "Moving task to redo", Toast.LENGTH_SHORT).show();
+                        if(((TextView)((LinearLayout)ll.getParent()).getChildAt(0)).getText().toString().equals("Today"))
+                            ((ProjectsActivity)getActivity()).addToNotification();
+                    }
 
                     ((ProjectsActivity)getActivity()).RefreshTasksList();
                 }
