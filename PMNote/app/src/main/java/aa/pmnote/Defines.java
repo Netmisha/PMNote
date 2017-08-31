@@ -11,6 +11,8 @@ import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.ValueEventListener;
 
 import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -148,5 +150,45 @@ public class Defines {
             }
         }
         return result;
+    }
+
+    static Defines.TaskType GetTaskType(String date, String time, boolean status)
+    {
+        Defines.TaskType tt = Defines.TaskType.OTHER;
+        if (!date.isEmpty()) {
+            String[] parts = date.split("\\.");
+
+            String s = parts[0];
+            Calendar taskDate = Calendar.getInstance();
+            if(time.isEmpty()) {
+                taskDate.set((int) Integer.parseInt(parts[2]), (int) Integer.parseInt(parts[1]) - 1, (int) Integer.parseInt(parts[0]));
+            }
+            else {
+                String[] time_parts = time.split(":");
+                taskDate.set((int) Integer.parseInt(parts[2]), (int) Integer.parseInt(parts[1]) - 1, (int) Integer.parseInt(parts[0]),
+                        (int)Integer.parseInt(time_parts[0]), (int)Integer.parseInt(time_parts[1]));
+            }
+
+            Calendar currDate = Calendar.getInstance();
+
+            long diffInMS = taskDate.getTime().getTime() - currDate.getTime().getTime();
+            TimeUnit tu = TimeUnit.DAYS;
+            long diffInDays = tu.convert(diffInMS, TimeUnit.MILLISECONDS);
+
+            if(diffInMS > 0) {
+                if (diffInDays <= 1)
+                    tt = Defines.TaskType.TODAY;
+                else if (diffInDays < 7)
+                    tt = Defines.TaskType.WEEK;
+                else if (diffInDays < 30)
+                    tt = Defines.TaskType.MONTH;
+            }
+            else {
+                if(!status)
+                    tt = Defines.TaskType.EXPIRED;
+            }
+        }
+
+        return tt;
     }
 }

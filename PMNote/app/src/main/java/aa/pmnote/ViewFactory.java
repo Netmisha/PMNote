@@ -46,22 +46,27 @@ import java.util.Vector;
 
 import aa.pmnote.OnSwipeTouchListener;
 
-/**
- * Created by anton.gorielikov on 8/23/2017.
- */
-
 public class ViewFactory {
     final static int LINEAR_LAYOUT_CHECKBOX_POSITION = 0;
 
-    static LinearLayout linearLayoutFactory(Context context, String text, Defines.LinearLayoutType llt) {
+    static LinearLayout linearLayoutFactory(Context context, String text, Defines.LinearLayoutType llt){
+        return linearLayoutFactory(context, text, null, llt);
+    }
+
+    static LinearLayout linearLayoutFactory(Context context, String text, String uid, Defines.LinearLayoutType llt) {
         LinearLayout ll = new LinearLayout(context);
         ll.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, 1.0f);
         ll.setGravity(Gravity.CENTER);
         ll.setLayoutParams(lp);
         ll.setTag(llt);
 
-        ll.addView(imageViewFactory(context, llt));
+        if(llt == Defines.LinearLayoutType.PROJECT) {
+            ll.addView(imageViewFactory(context, llt));
+        }
+        else if(uid != null){
+            ll.addView(imageViewFactory(context, text, uid));
+        }
         ll.addView(textViewFactory(context, text));
 
         return ll;
@@ -81,7 +86,7 @@ public class ViewFactory {
         return ll;
     }
 
-    static CheckBox checkBoxFactory(Context context, String text, boolean checked) {
+    private static CheckBox checkBoxFactory(Context context, String text, boolean checked) {
         final CheckBox cb = new CheckBox(context);
         cb.setLayoutParams(new ViewGroup.LayoutParams(120, 120));
         cb.setText("");
@@ -92,35 +97,30 @@ public class ViewFactory {
     }
 
 
-    static ImageView imageView(final Context context, final String name, final String uid) {
-
-
-
+    private static ImageView imageViewFactory(final Context context, final String name, final String uid) {
         final StorageReference
                 mStorageRef = FirebaseStorage.getInstance().getReference();
         final ImageView image = new ImageView(context);
-
-        StorageReference ProfileImgRef = mStorageRef.child("/"+uid + "/" + name+"/ProfileImage/");
+        image.setLayoutParams(new ViewGroup.LayoutParams(120, 120));
+        StorageReference ProfileImgRef = mStorageRef.child("/" + uid + "/" + name + "/ProfileImage/");
         ProfileImgRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
             @Override
             public void onSuccess(Uri uri) {
-
-
                 Glide.with(context).load(uri.toString()).into(image);
+                image.setTag(Defines.LinearLayoutType.PERSON);
             }
-
         });
-
         ProfileImgRef.getDownloadUrl().addOnFailureListener(new OnFailureListener() {
             @Override
             public void onFailure(@NonNull Exception e) {
                 image.setImageResource(R.drawable.ic_person);
+                image.setTag(Defines.LinearLayoutType.PERSON);
             }
         });
         return image;
     }
 
-    static ImageView imageViewFactory(Context context, Defines.LinearLayoutType llt) {
+    private static ImageView imageViewFactory(Context context, Defines.LinearLayoutType llt) {
         ImageView iv = new ImageView(context);
         iv.setLayoutParams(new ViewGroup.LayoutParams(120, 120));
         switch (llt) {
@@ -137,14 +137,14 @@ public class ViewFactory {
         return iv;
     }
 
-    static TextView textViewFactory(Context context, String text) {
+    private static TextView textViewFactory(Context context, String text) {
         return textViewFactory(context, text, null);
     }
 
-    static TextView textViewFactory(Context context, String text, View.OnClickListener onClickListener) {
+    private static TextView textViewFactory(Context context, String text, View.OnClickListener onClickListener) {
         TextView tv = new TextView(context);
         tv.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        tv.setGravity(Gravity.RIGHT);
+        tv.setGravity(Gravity.END);
         tv.setTextSize(20);
         tv.setText(text);
         if (onClickListener != null)
@@ -157,7 +157,7 @@ public class ViewFactory {
         return horizontalDividerFactory(context, Color.GRAY);
     }
 
-    static View horizontalDividerFactory(Context context, int color) {
+    private static View horizontalDividerFactory(Context context, int color) {
         View hd = new View(context);
         hd.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
         hd.setBackgroundColor(color);
@@ -226,7 +226,7 @@ public class ViewFactory {
                             list.add("Person");
                             list.add("Project");
                             list.add("List");
-                            final ArrayAdapter<String> adapter = new ArrayAdapter<String>(context,
+                            final ArrayAdapter<String> adapter = new ArrayAdapter<>(context,
                                     R.layout.my_spinner_item, list);
                             adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
                             spinner.setAdapter(adapter);
@@ -343,9 +343,9 @@ public class ViewFactory {
         return ll;
     }
 
-    static ListView listViewFactory(Context context, DataSnapshot ds){
+    private static ListView listViewFactory(Context context, DataSnapshot ds){
 
-        ArrayList<String> arrayList = new ArrayList<String>();
+        ArrayList<String> arrayList = new ArrayList<>();
         for(DataSnapshot dataSnapshot : ds.getChildren())
         {
             arrayList.add(dataSnapshot.getKey());
