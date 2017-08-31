@@ -26,6 +26,7 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
+import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
@@ -106,6 +107,14 @@ public class ViewFactory {
 
 
                 Glide.with(context).load(uri.toString()).into(image);
+            }
+
+        });
+
+        ProfileImgRef.getDownloadUrl().addOnFailureListener(new OnFailureListener() {
+            @Override
+            public void onFailure(@NonNull Exception e) {
+                image.setImageResource(R.drawable.ic_person);
             }
         });
         return image;
