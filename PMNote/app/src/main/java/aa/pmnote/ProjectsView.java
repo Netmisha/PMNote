@@ -761,9 +761,8 @@ public class ProjectsView extends AppCompatActivity {
                 mSearchCategory.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
                 ((LinearLayout) rootView.findViewById(R.id.mainLL)).addView(mSearchCategory, 0);
 
-                mSpinnerList.add("Show all");
-                mSpinnerList.add("Show open");
-                mSpinnerList.add("Show completed");
+                mSpinnerList.add("Open");
+                mSpinnerList.add("Completed");
 
                 mArrayAdapter = new ArrayAdapter<String>(getActivity(), R.layout.my_spinner_item, mSpinnerList);
                 mSearchCategory.setAdapter(mArrayAdapter);
@@ -791,15 +790,6 @@ public class ProjectsView extends AppCompatActivity {
                     for (int i = 0; i < ll.getChildCount() - 1; ++i) {
                         LinearLayout mll = (LinearLayout)ll.getChildAt(i);
                         for(int j = 2; j < mll.getChildCount(); j += Defines.ITEM_SIZE_IN_VIEWS){
-                            ll.getChildAt(i).setVisibility(View.VISIBLE);
-                        }
-                        mll.setVisibility(View.VISIBLE);
-                    }
-                    break;
-                case 1:
-                    for (int i = 0; i < ll.getChildCount() - 1; ++i) {
-                        LinearLayout mll = (LinearLayout)ll.getChildAt(i);
-                        for(int j = 2; j < mll.getChildCount(); j += Defines.ITEM_SIZE_IN_VIEWS){
                             boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(i)).getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).isChecked();
                             if (isCompeted) {
                                 mll.getChildAt(i).setVisibility(View.GONE);
@@ -815,7 +805,7 @@ public class ProjectsView extends AppCompatActivity {
                             mll.setVisibility(View.VISIBLE);
                     }
                     break;
-                case 2:
+                case 1:
                     for (int i = 0; i < ll.getChildCount() - 1; ++i) {
                         LinearLayout mll = (LinearLayout)ll.getChildAt(i);
                         for(int j = 2; j < mll.getChildCount(); j += Defines.ITEM_SIZE_IN_VIEWS){
@@ -891,6 +881,12 @@ public class ProjectsView extends AppCompatActivity {
             where.setVisibility(View.VISIBLE);
         }
 
+        private void RefreshTasks() {
+            int pos = mSearchCategory.getSelectedItemPosition();
+            mSearchCategory.setSelection(pos == 0 ? pos + 1 : pos - 1);
+            mSearchCategory.setSelection(pos);
+        }
+
         private void SetUpTasksListener() {
             mLinearLayout.addView(ViewFactory.placeholderFactory(getActivity()));
             if (getArguments().getInt(ARG_SECTION_NUMBER) - 1 == Defines.PROJECT_TASKS_FRAGMENT) {
@@ -933,6 +929,12 @@ public class ProjectsView extends AppCompatActivity {
                                     public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                                         mRoot.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid()).child(Defines.TASKS_FOLDER)
                                                 .child((String) ((CheckBox) ll.getChildAt(0)).getTag()).child(Defines.TASK_STATUS).setValue(String.valueOf(b));
+                                        if(b)
+                                            Toast.makeText(getActivity(), "Moving task to Completed", Toast.LENGTH_SHORT).show();
+                                        else
+                                            Toast.makeText(getActivity(), "Moving task for redo", Toast.LENGTH_SHORT).show();
+
+                                        RefreshTasks();
                                     }
                                 });
 

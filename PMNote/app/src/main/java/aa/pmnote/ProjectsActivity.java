@@ -195,9 +195,8 @@ public class ProjectsActivity extends AppCompatActivity {
                         mRootRef.child(Defines.TASKS_FOLDER).child(taskName).addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(DataSnapshot dataSnapshot) {
-                                boolean isInList = dataSnapshot.child(Defines.TASK_ATTACHED_LISTS).exists();
                                 boolean isCompleted = Boolean.parseBoolean(dataSnapshot.child(Defines.TASK_STATUS).getValue(String.class));
-                                if(!isInList && isCompleted) {
+                                if(isCompleted) {
                                     mll.getChildAt(taskNum).setVisibility(View.VISIBLE);
                                     mll.getChildAt(taskNum + 1).setVisibility(View.VISIBLE);
                                     mll.setVisibility(View.VISIBLE);
@@ -230,7 +229,8 @@ public class ProjectsActivity extends AppCompatActivity {
                             @Override
                             public void onDataChange(DataSnapshot dataSnapshot) {
                                 boolean isInNeededList = dataSnapshot.child(Defines.TASK_ATTACHED_LISTS).child(list).exists();
-                                if(isInNeededList) {
+                                boolean isCompleted = Boolean.parseBoolean(dataSnapshot.child(Defines.TASK_STATUS).getValue(String.class));
+                                if(isInNeededList && !isCompleted) {
                                     mll.getChildAt(taskNum).setVisibility(View.VISIBLE);
                                     mll.getChildAt(taskNum + 1).setVisibility(View.VISIBLE);
                                     mll.setVisibility(View.VISIBLE);
@@ -1326,7 +1326,12 @@ public class ProjectsActivity extends AppCompatActivity {
                 public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
                     String name = (String) ((CheckBox) ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).getTag();
                     mRootRef.child(Defines.TASKS_FOLDER).child(name).child(Defines.TASK_STATUS).setValue(String.valueOf(b));
-                    ((ProjectsActivity) getActivity()).RefreshCurrentFragment();
+                    if(b)
+                        Toast.makeText(getActivity(), "Moving task to Completed", Toast.LENGTH_SHORT).show();
+                    else
+                        Toast.makeText(getActivity(), "Moving task to redo", Toast.LENGTH_SHORT).show();
+
+                    ((ProjectsActivity)getActivity()).RefreshTasksList();
                 }
             });
 

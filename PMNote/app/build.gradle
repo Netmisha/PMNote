@@ -28,7 +28,7 @@ android {
             signingConfig signingConfigs.config
         }
     }
-    //fix some conflicts
+    //fix some conflictsn
     packagingOptions {
         exclude 'META-INF/DEPENDENCIES.txt'
         exclude 'META-INF/LICENSE.txt'
