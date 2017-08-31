@@ -1674,10 +1674,7 @@ public class ProfileView extends AppCompatActivity
                 sv.addView(project_list_layout);
 
 
-                //LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
-                //LinearLayout.LayoutParams.MATCH_PARENT,
-                // LinearLayout.LayoutParams.MATCH_PARENT);
-                // input.setLayoutParams(set_lp);
+
                 alertDialog.setView(sv);
 
 
@@ -1700,71 +1697,6 @@ public class ProfileView extends AppCompatActivity
 
             }
         });
-    }
-
-    GoogleAccountCredential credential;
-
-    private void CreateMeeting()
-    {
-        credential =
-                GoogleAccountCredential.usingOAuth2(this, Collections.singleton(CalendarScopes.CALENDAR));
-
-
-    }
-
-    public void createEvent(GoogleAccountCredential mCredential) {
-
-        HttpTransport transport = AndroidHttp.newCompatibleTransport();
-        JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
-        com.google.api.services.calendar.Calendar service = new com.google.api.services.calendar.Calendar.Builder(
-                transport, jsonFactory, mCredential)
-                .setApplicationName("PMNote")
-                .build();
-
-
-        Event event = new Event()
-                .setSummary("Event- April 2016")
-                .setLocation("Dhaka")
-                .setDescription("New Event 1");
-
-        DateTime startDateTime = new DateTime("2016-04-17T18:10:00+06:00");
-        EventDateTime start = new EventDateTime()
-                .setDateTime(startDateTime)
-                .setTimeZone("Asia/Dhaka");
-        event.setStart(start);
-
-        DateTime endDateTime = new DateTime("2016-04-17T18:40:00+06:00");
-        EventDateTime end = new EventDateTime()
-                .setDateTime(endDateTime)
-                .setTimeZone("Asia/Dhaka");
-        event.setEnd(end);
-
-        String[] recurrence = new String[]{"RRULE:FREQ=DAILY;COUNT=2"};
-        event.setRecurrence(Arrays.asList(recurrence));
-
-        EventAttendee[] attendees = new EventAttendee[]{
-                new EventAttendee().setEmail("abir@aksdj.com"),
-                new EventAttendee().setEmail("asdasd@andlk.com"),
-        };
-        event.setAttendees(Arrays.asList(attendees));
-
-        EventReminder[] reminderOverrides = new EventReminder[]{
-                new EventReminder().setMethod("email").setMinutes(24 * 60),
-                new EventReminder().setMethod("popup").setMinutes(10),
-        };
-        Event.Reminders reminders = new Event.Reminders()
-                .setUseDefault(false)
-                .setOverrides(Arrays.asList(reminderOverrides));
-        event.setReminders(reminders);
-
-        String calendarId = "primary";
-        try {
-            event = service.events().insert(calendarId, event).execute();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        System.out.printf("Event created: %s\n", event.getHtmlLink());
-
     }
 
     private void CreateMeetingDialog()
@@ -1959,10 +1891,6 @@ public class ProfileView extends AppCompatActivity
                         if(!input_name.getText().toString().isEmpty() )
                         {
                             mRootRef.child("Meetings").child(input_name.getText().toString()).setValue(true);
-                           // mRootRef.child("Widgets").child(input.getText().toString()).child("Max_Num").setValue(Integer.parseInt(max_input.getText().toString()));
-                         //   mRootRef.child("Widgets").child(input.getText().toString()).child("Cur_Num").setValue(0);
-                          //  SetSeekBar(input.getText().toString(), Integer.parseInt(max_input.getText().toString()), 0);
-
                         }
                         else
                         {
@@ -1981,6 +1909,72 @@ public class ProfileView extends AppCompatActivity
                 });
 
         alertDialog.show();
+
+    }
+
+
+    GoogleAccountCredential credential;
+
+    private void CreateMeeting()
+    {
+        credential =
+                GoogleAccountCredential.usingOAuth2(this, Collections.singleton(CalendarScopes.CALENDAR));
+
+
+    }
+
+    public void createEvent(GoogleAccountCredential mCredential) {
+
+        HttpTransport transport = AndroidHttp.newCompatibleTransport();
+        JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+        com.google.api.services.calendar.Calendar service = new com.google.api.services.calendar.Calendar.Builder(
+                transport, jsonFactory, mCredential)
+                .setApplicationName("PMNote")
+                .build();
+
+
+        Event event = new Event()
+                .setSummary("Event- April 2016")
+                .setLocation("Dhaka")
+                .setDescription("New Event 1");
+
+        DateTime startDateTime = new DateTime("2016-04-17T18:10:00+06:00");
+        EventDateTime start = new EventDateTime()
+                .setDateTime(startDateTime)
+                .setTimeZone("Asia/Dhaka");
+        event.setStart(start);
+
+        DateTime endDateTime = new DateTime("2016-04-17T18:40:00+06:00");
+        EventDateTime end = new EventDateTime()
+                .setDateTime(endDateTime)
+                .setTimeZone("Asia/Dhaka");
+        event.setEnd(end);
+
+        String[] recurrence = new String[]{"RRULE:FREQ=DAILY;COUNT=2"};
+        event.setRecurrence(Arrays.asList(recurrence));
+
+        EventAttendee[] attendees = new EventAttendee[]{
+                new EventAttendee().setEmail("abir@aksdj.com"),
+                new EventAttendee().setEmail("asdasd@andlk.com"),
+        };
+        event.setAttendees(Arrays.asList(attendees));
+
+        EventReminder[] reminderOverrides = new EventReminder[]{
+                new EventReminder().setMethod("email").setMinutes(24 * 60),
+                new EventReminder().setMethod("popup").setMinutes(10),
+        };
+        Event.Reminders reminders = new Event.Reminders()
+                .setUseDefault(false)
+                .setOverrides(Arrays.asList(reminderOverrides));
+        event.setReminders(reminders);
+
+        String calendarId = "primary";
+        try {
+            event = service.events().insert(calendarId, event).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.printf("Event created: %s\n", event.getHtmlLink());
 
     }
 }
