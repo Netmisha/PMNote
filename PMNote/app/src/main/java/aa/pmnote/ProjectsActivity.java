@@ -483,7 +483,7 @@ public class ProjectsActivity extends AppCompatActivity {
                             mArrayAdapter.notifyDataSetChanged();
 
                             int temp = mSearchOptions.getSelectedItemPosition();
-                            mSearchOptions.setSelection(1, true);
+                            mSearchOptions.setSelection(temp == 0 ? temp + 1 : temp - 1, true);
                             mSearchOptions.setSelection(mSavedSpinnerPosition, true);
                             mSavedSpinnerPosition = temp;
                             invalidateOptionsMenu();
