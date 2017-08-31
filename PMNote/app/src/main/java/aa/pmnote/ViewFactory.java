@@ -1,11 +1,13 @@
 package aa.pmnote;
-
+import com.bumptech.glide.Glide;
 import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
+import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.support.v7.app.AlertDialog;
 import android.view.DragEvent;
 import android.view.Gravity;
@@ -24,15 +26,21 @@ import android.widget.Spinner;
 import android.widget.TextView;
 import android.widget.TimePicker;
 
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
 
 import org.w3c.dom.Text;
 
 import java.util.ArrayList;
 import java.util.Calendar;
+import java.util.Vector;
 
 import aa.pmnote.OnSwipeTouchListener;
 
@@ -79,6 +87,42 @@ public class ViewFactory {
         cb.setChecked(checked);
 
         return cb;
+    }
+
+
+    static ImageView imageView(final Context context, final String name) {
+
+
+        FirebaseAuth mAuth = FirebaseAuth.getInstance();
+        final StorageReference
+                mStorageRef = FirebaseStorage.getInstance().getReference();
+        final Vector<String> uid = new Vector<String>();
+        final ImageView image = new ImageView(context);
+        FirebaseAuth.AuthStateListener mAuthStateListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                if (firebaseAuth.getCurrentUser() == null) {
+                } else {
+                    uid.add(firebaseAuth.getCurrentUser().getUid());
+
+                }
+
+
+                StorageReference ProfileImgRef = mStorageRef.child("/" + uid.get(0) + "/" + name + "/ProfileImage/");
+
+                ProfileImgRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+                    @Override
+                    public void onSuccess(Uri uri) {
+
+
+                        Glide.with(context).load(uri.toString()).into(image);
+
+                    }
+                });
+
+            }
+        };
+        return image;
     }
 
     static ImageView imageViewFactory(Context context, Defines.LinearLayoutType llt) {
