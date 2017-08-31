@@ -38,6 +38,7 @@ import com.google.firebase.storage.StorageReference;
 
 import org.w3c.dom.Text;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Vector;
@@ -90,38 +91,23 @@ public class ViewFactory {
     }
 
 
-    static ImageView imageView(final Context context, final String name) {
+    static ImageView imageView(final Context context, final String name, final String uid) {
 
 
-        FirebaseAuth mAuth = FirebaseAuth.getInstance();
+
         final StorageReference
                 mStorageRef = FirebaseStorage.getInstance().getReference();
-        final Vector<String> uid = new Vector<String>();
         final ImageView image = new ImageView(context);
-        FirebaseAuth.AuthStateListener mAuthStateListener = new FirebaseAuth.AuthStateListener() {
+
+        StorageReference ProfileImgRef = mStorageRef.child("/"+uid + "/" + name+"/ProfileImage/");
+        ProfileImgRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
             @Override
-            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
-                if (firebaseAuth.getCurrentUser() == null) {
-                } else {
-                    uid.add(firebaseAuth.getCurrentUser().getUid());
-
-                }
+            public void onSuccess(Uri uri) {
 
 
-                StorageReference ProfileImgRef = mStorageRef.child("/" + uid.get(0) + "/" + name + "/ProfileImage/");
-
-                ProfileImgRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
-                    @Override
-                    public void onSuccess(Uri uri) {
-
-
-                        Glide.with(context).load(uri.toString()).into(image);
-
-                    }
-                });
-
+                Glide.with(context).load(uri.toString()).into(image);
             }
-        };
+        });
         return image;
     }
 
