@@ -79,7 +79,7 @@ public class Defines {
     private static ArrayList<String> taskOptions = new ArrayList<>();
     private static ArrayList<String> projectsOptions = new ArrayList<>();
 
-    final static String OPEN_TASKS = "Open";
+    final static String OPEN_TASKS = "All Open";
     final static String COMPLETED_TASKS = "Completed";
     final static String NEW_LIST = "New list";
 

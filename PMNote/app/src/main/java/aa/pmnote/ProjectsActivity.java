@@ -172,9 +172,8 @@ public class ProjectsActivity extends AppCompatActivity {
                         mRootRef.child(Defines.TASKS_FOLDER).child(taskName).addListenerForSingleValueEvent(new ValueEventListener() {
                             @Override
                             public void onDataChange(DataSnapshot dataSnapshot) {
-                                boolean isInList = dataSnapshot.child(Defines.TASK_ATTACHED_LISTS).exists();
                                 boolean isCompleted = Boolean.parseBoolean(dataSnapshot.child(Defines.TASK_STATUS).getValue(String.class));
-                                if(!isInList && !isCompleted) {
+                                if(!isCompleted) {
                                     mll.getChildAt(taskNum).setVisibility(View.VISIBLE);
                                     mll.getChildAt(taskNum + 1).setVisibility(View.VISIBLE);
                                     mll.setVisibility(View.VISIBLE);
