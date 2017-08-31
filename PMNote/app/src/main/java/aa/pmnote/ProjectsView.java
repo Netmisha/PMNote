@@ -304,6 +304,7 @@ public class ProjectsView extends AppCompatActivity {
                     }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true);
                     tpd.setTitle("Pick deadline time");
                     tpd.show();
+                    timeInput.clearFocus();
                 }
             }
         });
@@ -329,6 +330,7 @@ public class ProjectsView extends AppCompatActivity {
                     }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DATE));
                     dpd.setTitle("Pick deadline date.");
                     dpd.show();
+                    dateInput.clearFocus();
                 }
             }
         });
@@ -628,6 +630,7 @@ public class ProjectsView extends AppCompatActivity {
                         mRootRef.child(Defines.PROJECT_TASKS).child(taskToAdd).setValue(true);
                         mRootRef.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
                                 .child(Defines.PEOPLE_FOLDER).child(taskToAdd).child(Defines.PERSON_PROJECTS).child(mProjectName).setValue(true);
+                        Toast.makeText(ProjectsView.this, "Adding task to project", Toast.LENGTH_SHORT).show();
                         ad.cancel();
                     }
                 });
@@ -671,6 +674,7 @@ public class ProjectsView extends AppCompatActivity {
                         mRootRef.child(Defines.PROJECT_PEOPLE).child(userToAdd).setValue(true);
                         mRootRef.getRoot().child(Defines.USERS_FOLDER).child(mAuth.getCurrentUser().getUid())
                                 .child(Defines.PEOPLE_FOLDER).child(userToAdd).child(Defines.PERSON_PROJECTS).child(mProjectName).setValue(true);
+                        Toast.makeText(ProjectsView.this, "Adding person to project", Toast.LENGTH_SHORT).show();
                         ad.cancel();
                     }
                 });

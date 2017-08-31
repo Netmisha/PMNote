@@ -626,6 +626,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     }, c.get(Calendar.HOUR_OF_DAY), c.get(Calendar.MINUTE), true);
                     tpd.setTitle("Pick deadline time");
                     tpd.show();
+                    timeInput.clearFocus();
                 }
             }
         });
@@ -651,6 +652,7 @@ public class ProjectsActivity extends AppCompatActivity {
                     }, c.get(Calendar.YEAR), c.get(Calendar.MONTH), c.get(Calendar.DATE));
                     dpd.setTitle("Pick deadline date.");
                     dpd.show();
+                    dateInput.clearFocus();
                 }
             }
         });

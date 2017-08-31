@@ -60,10 +60,10 @@ public class LoginActivity extends AppCompatActivity {
                 //if client logged in
                 if(firebaseAuth.getCurrentUser() != null)
                 {
-                    //clear password
-                    mPasswordField.setText("");
                     //go to the project activity
                     startActivity(new Intent(LoginActivity.this, ProjectsActivity.class));
+                    //clear password
+                    mPasswordField.setText("");
                 }
             }
         };
@@ -175,6 +175,14 @@ public class LoginActivity extends AppCompatActivity {
             Toast.makeText(LoginActivity.this, "Password is empty", Toast.LENGTH_LONG).show();
             mSigninProgressBar.setVisibility(View.INVISIBLE);
         }
+        else if(password.length() < 6){
+            Toast.makeText(LoginActivity.this, "Password is too short", Toast.LENGTH_LONG).show();
+            mSigninProgressBar.setVisibility(View.INVISIBLE);
+        }
+        else if(Defines.isEmailValid(email)){
+            Toast.makeText(LoginActivity.this, "Email is invalid", Toast.LENGTH_LONG).show();
+            mSigninProgressBar.setVisibility(View.INVISIBLE);
+        }
         else
         {
             mAuth.signInWithEmailAndPassword(email, password).addOnCompleteListener(new OnCompleteListener<AuthResult>() {
@@ -203,10 +211,6 @@ public class LoginActivity extends AppCompatActivity {
                             Toast.makeText(LoginActivity.this, "Register failed.",
                                     Toast.LENGTH_SHORT).show();
                             mSigninProgressBar.setVisibility(View.INVISIBLE);
-                        }
-                        else
-                        {
-                            signInWithEmailPassword();
                         }
                     }
                 });

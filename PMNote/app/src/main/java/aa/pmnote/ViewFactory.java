@@ -320,6 +320,7 @@ public class ViewFactory {
 
                         }
                     });
+                    et.clearFocus();
                 }
             }
         });
