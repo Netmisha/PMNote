@@ -110,7 +110,8 @@
                         android:layout_height="wrap_content"
                         android:layout_weight="3"
                         android:textColor="@android:color/black"
-                        android:textSize="20sp" />
+                        android:textSize="20sp"
+                        android:autoLink="email"/>
                 </LinearLayout>
 
                 <Space
@@ -156,7 +157,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:textColor="@android:color/black"
-                    android:textSize="25sp" />
+                    android:textSize="25sp"
+                    android:autoLink="phone"/>
 
             </LinearLayout>
 

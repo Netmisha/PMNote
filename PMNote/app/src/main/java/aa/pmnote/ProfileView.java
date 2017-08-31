@@ -492,7 +492,7 @@ public class ProfileView extends AppCompatActivity
                                             Toast.LENGTH_LONG).show();
                                 }
                             ((TextView) findViewById(R.id.number)).setText(number_input.getText().toString());
-                            mRootRef.child("Info").child("number").setValue(number_input.getText().toString());
+                            mRootRef.child("Info").child("number").setValue(Defines.hlinkFromEmail(number_input.getText().toString()));
                         }
                         else
                         {
