@@ -83,6 +83,8 @@ public class Defines {
     final static String COMPLETED_TASKS = "Completed";
     final static String NEW_LIST = "New list";
 
+    final static String NO_TASKS_TEXT = "Nothing, great job!";
+
     final static InputFilter NAME_FILTER = new InputFilter() {
         public CharSequence filter(CharSequence source, int start, int end, Spanned dest, int dstart, int dend) {
             for (int i = start;i < end;i++) {
@@ -94,6 +96,10 @@ public class Defines {
             return null;
         }
     };
+
+    static String StringFromTaskNameAndTime(String taskName, String taskTime) {
+        return taskName + " | Due by " + taskTime;
+    }
 
     static void SetArrayList(final ArrayList<String> list, DataSnapshot listFolder) {
         list.clear();
@@ -176,7 +182,7 @@ public class Defines {
             long diffInDays = tu.convert(diffInMS, TimeUnit.MILLISECONDS);
 
             if(diffInMS > 0) {
-                if (diffInDays <= 1)
+                if (currDate.get(Calendar.DATE) == taskDate.get(Calendar.DATE))
                     tt = Defines.TaskType.TODAY;
                 else if (diffInDays < 7)
                     tt = Defines.TaskType.WEEK;

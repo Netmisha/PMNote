@@ -1,17 +1,22 @@
 package aa.pmnote;
 
 import android.app.DatePickerDialog;
+import android.app.Notification;
+import android.app.NotificationManager;
+import android.app.PendingIntent;
 import android.app.SearchManager;
 import android.app.TimePickerDialog;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.res.Resources;
 import android.graphics.Color;
 import android.icu.text.DateFormat;
 import android.provider.ContactsContract;
 import android.support.annotation.NonNull;
 import android.support.design.widget.FloatingActionButton;
 import android.support.design.widget.Snackbar;
+import android.support.v4.app.NotificationCompat;
 import android.support.v7.app.AlertDialog;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.LinearLayoutCompat;
@@ -101,6 +106,11 @@ public class ProjectsActivity extends AppCompatActivity {
     private int mSavedSpinnerPosition = 0;
 
     private String mUID;
+
+    private final static int mNotificationID = 0;
+    private NotificationCompat.Builder mNotificationBuilder = null;
+    private NotificationManager mNotificationManager = null;
+    private ArrayList<String> mTodayTasks = new ArrayList<>();
 
     public void RefreshCurrentFragment() {
         HideItemsBySearchOptions(mSearchOptions.getSelectedItemPosition());
@@ -272,6 +282,47 @@ public class ProjectsActivity extends AppCompatActivity {
 
                 }
             });
+    }
+
+    public void updateNotification() {
+        String notificationText = "";
+        for(int i = 0; i < mTodayTasks.size(); ++i) {
+            notificationText += mTodayTasks.get(i);
+            if(i != mTodayTasks.size() - 1)
+                notificationText += System.lineSeparator();
+        }
+
+        if(notificationText.isEmpty())mNotificationBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText(Defines.NO_TASKS_TEXT))
+                .setContentText(Defines.NO_TASKS_TEXT);
+        else {
+            mNotificationBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText(notificationText))
+                    .setContentText(notificationText);
+        }
+
+        mNotificationManager.notify(mNotificationID, mNotificationBuilder.build());
+    }
+
+    public void removeFromNotification(String taskName, String taskTime) {
+        mTodayTasks.remove(Defines.StringFromTaskNameAndTime(taskName, taskTime));
+        updateNotification();
+    }
+
+    public void addToNotification(String taskName, String taskTime) {
+        mTodayTasks.add(Defines.StringFromTaskNameAndTime(taskName, taskTime));
+        updateNotification();
+    }
+
+    public void showNotification() {
+        mNotificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+        mNotificationBuilder = new NotificationCompat.Builder(ProjectsActivity.this)
+                .setSmallIcon(android.R.drawable.ic_menu_report_image)
+                .setTicker("PMNote")
+                .setContentTitle("Today tasks")
+                .setContentText(Defines.NO_TASKS_TEXT)
+                .setAutoCancel(true)
+                .setOngoing(true);
+
+        mNotificationManager.notify(mNotificationID, mNotificationBuilder.build());
     }
 
     private ChildEventListener listCEL = null;
@@ -476,6 +527,7 @@ public class ProjectsActivity extends AppCompatActivity {
             }
         });
 
+        showNotification();
     }
 
     public void AddOrEditTask() {
@@ -1133,7 +1185,7 @@ public class ProjectsActivity extends AppCompatActivity {
                             case Defines.TASKS_FRAGMENT:
                                 mLinearLayout.addView(mExpiredTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Expired"));
                                 mExpiredTasks.setVisibility(View.GONE);
-                                mLinearLayout.addView(mTodayTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Less than a day"));
+                                mLinearLayout.addView(mTodayTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Today"));
                                 mTodayTasks.setVisibility(View.GONE);
                                 mLinearLayout.addView(mWeekTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "7 days"));
                                 mWeekTasks.setVisibility(View.GONE);
@@ -1277,6 +1329,12 @@ public class ProjectsActivity extends AppCompatActivity {
                 @Override
                 public void onChildRemoved(DataSnapshot dataSnapshot) {
                     RemoveTaskByText(dataSnapshot.getKey());
+                    boolean status = Boolean.parseBoolean(dataSnapshot.child(Defines.TASK_STATUS).getValue(String.class));
+                    String date = dataSnapshot.child(Defines.TASK_DATE).getValue(String.class);
+                    String time = dataSnapshot.child(Defines.TASK_TIME).getValue(String.class);
+                    String name = dataSnapshot.getKey();
+                    if(Defines.GetTaskType(date, time, status) == Defines.TaskType.TODAY)
+                        ((ProjectsActivity)getActivity()).removeFromNotification(name, time);
                 }
 
                 @Override
@@ -1298,6 +1356,8 @@ public class ProjectsActivity extends AppCompatActivity {
 
         private void PrepareToAddTask(String name, boolean status, String date, String time) {
             AddItem(name, status, Defines.GetTaskType(date, time, status));
+            if(Defines.GetTaskType(date, time, status) == Defines.TaskType.TODAY)
+                ((ProjectsActivity)getActivity()).addToNotification(name, time);
         }
 
         private void AddItem(String name, boolean checkBoxStatus, Defines.TaskType tt) {
