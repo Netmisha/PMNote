@@ -1,0 +1,2003 @@
+package aa.pmnote;
+;
+import com.bumptech.glide.Glide;
+
+import android.app.DatePickerDialog;
+import android.app.TimePickerDialog;
+import android.content.Context;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.graphics.Color;
+import android.net.Uri;
+import android.os.Bundle;
+import android.provider.CalendarContract;
+import android.provider.ContactsContract;
+
+import com.google.api.client.json.jackson2.JacksonFactory;
+import com.google.api.services.calendar.Calendar;
+import android.support.annotation.NonNull;
+import android.support.design.widget.FloatingActionButton;
+import android.support.v7.app.AppCompatActivity;
+import android.support.v7.widget.Toolbar;
+import android.text.Editable;
+import android.text.Html;
+import android.text.InputFilter;
+import android.text.InputType;
+import android.text.TextWatcher;
+import android.text.method.LinkMovementMethod;
+import android.view.Gravity;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.view.View;
+
+import android.content.DialogInterface;
+import android.app.AlertDialog;
+import android.view.ViewGroup;
+import android.widget.AdapterView;
+import android.widget.Button;
+import android.widget.CompoundButton;
+import android.widget.DatePicker;
+import android.widget.ImageView;
+import android.widget.ListView;
+import android.widget.ScrollView;
+import android.widget.Space;
+import android.widget.TimePicker;
+import android.widget.Toast;
+
+import android.widget.SeekBar;
+import android.widget.SeekBar.OnSeekBarChangeListener;
+import android.widget.CheckBox;
+import android.widget.TextView;
+import android.widget.EditText;
+import android.widget.LinearLayout;
+
+//for notifications
+
+import 	android.widget.Spinner;
+
+import com.firebase.client.Firebase;
+import com.firebase.client.FirebaseError;
+import com.google.android.gms.tasks.OnFailureListener;
+import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.api.client.util.DateTime;
+import com.google.api.services.calendar.model.Event;
+import com.google.api.services.calendar.model.EventAttendee;
+import com.google.api.services.calendar.model.EventDateTime;
+import com.google.api.services.calendar.model.EventReminder;
+import com.google.common.io.LineReader;
+import com.google.firebase.auth.FirebaseAuth;
+import com.google.firebase.database.ChildEventListener;
+import com.google.firebase.database.DataSnapshot;
+import com.google.firebase.database.DatabaseError;
+import com.google.firebase.database.DatabaseReference;
+import com.google.firebase.database.FirebaseDatabase;
+import com.google.firebase.database.ValueEventListener;
+import com.google.firebase.storage.FileDownloadTask;
+import com.google.firebase.storage.FirebaseStorage;
+import com.google.firebase.storage.StorageReference;
+import com.google.firebase.storage.UploadTask;
+
+import aa.pmnote.CustomAdapter;import aa.pmnote.R;
+
+import java.io.File;
+import java.io.IOException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Date;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.TimeZone;
+import java.util.Vector;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
+
+import com.google.android.gms.common.GooglePlayServicesUtil;
+import com.google.api.client.extensions.android.http.AndroidHttp;
+import com.google.api.client.googleapis.extensions.android.gms.auth.GoogleAccountCredential;
+import com.google.api.client.http.HttpTransport;
+import com.google.api.client.json.JsonFactory;
+//import com.google.api.client.json.gson.GsonFactory;
+import com.google.api.services.calendar.CalendarScopes;
+
+public class ProfileView extends AppCompatActivity
+{
+    private final static String NAME_TAG = "PERSON_NAME";
+    private String mName;
+    public View for_alertdialog;
+    public Boolean changingDir;
+
+    private FirebaseAuth mAuth;
+    private FirebaseAuth.AuthStateListener mAuthStateListener;
+    private DatabaseReference mRootRef;
+    private StorageReference mStorageRef;
+    public String uid;
+    public static Boolean isThereAnyProjects;
+
+    //how widgets will be saved on firebase
+    private final static int NOTE = 1;
+    private final static int CHECKBOX = 2;
+    private final static int SLIDER = 3;
+    private final static int COMBOBOX = 4;
+    private final static int SPINBOX = 5;
+
+    final static int IMPORT_PICTURE = 123;
+    @Override
+
+    protected void onCreate(Bundle savedInstanceState) {
+
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_profile_view);
+        Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+
+        //adding
+        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+        ll.addView(horizontalDividerFactory());
+        //vars
+        slider_arch = new Vector<TextView>();
+        changingDir = false;
+        //set up name
+        mName = getIntent().getStringExtra(NAME_TAG);
+        ((TextView) findViewById(R.id.name)).setText(mName);
+
+        //set up mail
+        ((TextView) findViewById(R.id.mail)).setText(mName);
+
+
+        mAuth = FirebaseAuth.getInstance();
+        mAuthStateListener = new FirebaseAuth.AuthStateListener() {
+            @Override
+            public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
+                if(firebaseAuth.getCurrentUser() == null) {
+                    finish();
+                }
+                else
+                {
+                    uid = firebaseAuth.getCurrentUser().getUid();
+                    mRootRef = FirebaseDatabase.getInstance().getReference().child("Users").child(uid).child("People").child(mName);
+                    mStorageRef = FirebaseStorage.getInstance().getReference();
+                    SetUpWidgetList();
+                    SetUpImage();
+
+                }
+            }
+        };
+
+        //------------------------------------------------------------------------------------------
+        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+
+            @Override
+            public void onClick(View view) {
+
+
+                AlertDialog.Builder builder;
+                final String[] mItemsName = {"Note", "Checkbox", "Slider",  "Combobox", "Spinbox", "Add Task", "Attach to Project", "Create Meeting", "Check Meetings"};
+
+                builder = new AlertDialog.Builder(ProfileView.this);
+                builder.setTitle("Add ..."); // tite
+                builder.setItems(mItemsName, new DialogInterface.OnClickListener() {
+                    @Override
+                    public void onClick(DialogInterface dialog, int item) {
+                        switch (mItemsName[item]) {
+                            case "Note":
+                                addNote();
+                                break;
+                            case "Checkbox":
+                                addCheckbox();
+                                break;
+                            case "Slider":
+                                addSeekBar();
+                                break;
+                            case "Combobox":
+                                addCombobox();
+                                break;
+                            case "Spinbox":
+                                break;
+                            case "Add Task":
+                                AddOrEditTask();
+                                break;
+                            case "Attach to Project":
+                                AddToProject();
+                                break;
+                            case "Check Meetings":
+                                Intent i = new Intent(ProfileView.this, CalendarView.class);
+                                i.putExtra("CAL_NAME", mName);
+                                i.putExtra("CAL_MAIL",((TextView) findViewById(R.id.mail)).getText().toString() );
+                                startActivity(i);
+                                break;
+
+                            case "Create Meeting":
+                                Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.google.android.calendar");
+
+                                if (launchIntent != null) {
+                                    startActivity(launchIntent);//null pointer check in case package name was not found
+                                }
+                                break;
+
+                        }
+                    }
+                });
+                builder.setCancelable(true);
+                builder.show();
+
+            }
+        });
+
+        //------------------------------------------------------------------------------------------
+        ImageView avatar = (ImageView) findViewById(R.id.avatar);
+        avatar.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+
+                AlertDialog.Builder ad;
+                String title = "Warning !";
+                String message = "Do you want to change profile image?";
+                String button1String = "Yes";
+                String button2String = "Cancel";
+
+                ad = new AlertDialog.Builder(ProfileView.this);
+                ad.setTitle(title);  // заголовок
+                ad.setMessage(message); // сообщение
+                ad.setPositiveButton(button1String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        Intent intent = new Intent()
+                                .setType("image/*")
+                                .setAction(Intent.ACTION_GET_CONTENT);
+
+                        startActivityForResult(Intent.createChooser(intent, "Select a picture"), IMPORT_PICTURE);
+                    }
+                });
+                ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        Toast.makeText(ProfileView.this, "Canceled",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+                ad.setCancelable(true);
+                ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    public void onCancel(DialogInterface dialog) {
+                        Toast.makeText(ProfileView.this, "Canceled",
+                                Toast.LENGTH_LONG).show();
+                    }}
+                );
+
+                ad.show();
+            }
+        });
+
+        //------------------------------------------------------------------------------------------
+        ImageView add_t = (ImageView) findViewById(R.id.add_ts);
+        add_t.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {AddOrEditTask();}
+        });
+
+        //------------------------------------------------------------------------------------------
+        ImageView add_p = (ImageView) findViewById(R.id.add_pr);
+        add_p.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {AddToProject();}
+        });
+
+    }
+
+    @Override
+    protected void onStart() {
+        super.onStart();
+        mAuth.addAuthStateListener(mAuthStateListener);
+
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+       // finish();
+        //startActivity(getIntent());
+    }
+
+    @Override
+    public void onStop() {
+        super.onStop();
+        if (mAuthStateListener != null) {
+           mAuth.removeAuthStateListener(mAuthStateListener);
+        }
+        //------------------------------------------------------------------------------------------
+        if(widgetsCEL != null)//Widgets
+            mRootRef.child("Widgets").removeEventListener(widgetsCEL);
+        if(projectsCEL != null)
+           mRootRef.child("Projects").removeEventListener(projectsCEL);
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if(requestCode==IMPORT_PICTURE && resultCode==RESULT_OK) {
+
+
+            Uri selectedfile = data.getData(); //The uri with the location of the file
+
+            StorageReference ProfileImgRef = mStorageRef.child("/"+uid + "/" + mName+"/ProfileImage/");
+            ProfileImgRef.delete();
+
+
+            ProfileImgRef.putFile(selectedfile)
+                    .addOnSuccessListener(new OnSuccessListener<UploadTask.TaskSnapshot>() {
+                        @Override
+                        public void onSuccess(UploadTask.TaskSnapshot taskSnapshot) {
+                            // Get a URL to the uploaded content
+                            finish();
+                            startActivity(getIntent());
+                            Uri downloadUrl = taskSnapshot.getDownloadUrl();
+                            ImageView imageView =  (ImageView) findViewById(R.id.avatar);
+                            Glide.with(ProfileView.this).load(downloadUrl.toString()).into(imageView);
+                        }
+                    })
+                    .addOnFailureListener(new OnFailureListener() {
+                        @Override
+                        public void onFailure(@NonNull Exception exception) {
+                            // Handle unsuccessful uploads
+                            finish();
+                            startActivity(getIntent());
+                            Toast.makeText(ProfileView.this, "Upload faild",
+                                    Toast.LENGTH_LONG).show();
+                        }
+                    });
+
+        }
+    }
+
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        // Inflate the menu; this adds items to the action bar if it is present.
+        getMenuInflater().inflate(R.menu.profile_menu, menu);
+        return true;
+    }
+
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        // Handle action bar item clicks here. The action bar will
+        // automatically handle clicks on the Home/Up button, so long
+        // as you specify a parent activity in AndroidManifest.xml.
+        int id = item.getItemId();
+
+        //------------------------------------------------------------------------------------------
+        //noinspection SimplifiableIfStatement
+        if (id == R.id.set_img) {
+
+            Intent intent = new Intent()
+                    .setType("image/*")
+                    .setAction(Intent.ACTION_GET_CONTENT);
+
+            startActivityForResult(Intent.createChooser(intent, "Select a picture"), IMPORT_PICTURE);
+
+            return true;
+        }
+
+        //------------------------------------------------------------------------------------------
+        if (id == R.id.set_info) {
+            OpenSetInfoDialog();
+            return true;
+        }
+
+        //------------------------------------------------------------------------------------------
+        if (id == R.id.del_usr) {
+            AlertDialog.Builder ad;
+            String title = "Warning !";
+            String message = "Do you really want to delete this profile?";
+            String button1String = "Yes";
+            String button2String = "Cancel";
+
+            ad = new AlertDialog.Builder(ProfileView.this);
+            ad.setTitle(title);  // заголовок
+            ad.setMessage(message); // сообщение
+            ad.setPositiveButton(button1String, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int arg1) {
+                    mRootRef.removeValue();
+                    finish();
+                }
+            });
+            ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int arg1) {
+                    Toast.makeText(ProfileView.this, "Canceled",
+                            Toast.LENGTH_LONG).show();
+                }
+            });
+            ad.setCancelable(true);
+            ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                public void onCancel(DialogInterface dialog) {
+                    Toast.makeText(ProfileView.this, "Canceled",
+                            Toast.LENGTH_LONG).show();
+                }}
+            );
+
+            ad.show();
+
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
+
+    private void OpenSetInfoDialog()
+    {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(ProfileView.this);
+        alertDialog.setTitle("Profile Info");
+        alertDialog.setMessage("Enter Person Info: ");
+
+        //inputs
+        //------------------------------------------------------------------------------------------
+        final EditText name_input = new EditText(ProfileView.this);
+        name_input.setText(mName);
+        name_input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+        final EditText mail_input = new EditText(ProfileView.this);
+        mail_input.setText( ((TextView)findViewById(R.id.mail)).getText().toString() );
+        mail_input.setInputType(InputType.TYPE_TEXT_VARIATION_EMAIL_ADDRESS | InputType.TYPE_TEXT_VARIATION_WEB_EMAIL_ADDRESS | InputType.TYPE_TEXT_VARIATION_EMAIL_SUBJECT);
+        final EditText skype_input = new EditText(ProfileView.this);
+        skype_input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+        skype_input.setText( ((TextView)findViewById(R.id.skype)).getText().toString() );
+        final EditText number_input = new EditText(ProfileView.this);
+        number_input.setText( ((TextView)findViewById(R.id.number)).getText().toString() );
+        number_input.setInputType(InputType.TYPE_CLASS_PHONE);
+
+        //labels
+        //------------------------------------------------------------------------------------------
+        final TextView enter_n = new TextView(ProfileView.this);
+        enter_n.setText("Enter name:");
+        TextView enter_m = new TextView(ProfileView.this);
+        enter_m.setText("Enter e-mail:");
+        TextView enter_s = new TextView(ProfileView.this);
+        enter_s.setText("Enter skype:");
+        TextView enter_number = new TextView(ProfileView.this);
+        enter_number.setText("Enter phone number:");
+
+        //layout
+        //------------------------------------------------------------------------------------------
+        LinearLayout info_set_layout = new LinearLayout(ProfileView.this);
+        info_set_layout.setOrientation(LinearLayout.VERTICAL);
+        info_set_layout.addView(enter_n);
+        info_set_layout.addView(name_input);
+        info_set_layout.addView(enter_m);
+        info_set_layout.addView(mail_input);
+        info_set_layout.addView(enter_s);
+        info_set_layout.addView(skype_input);
+        info_set_layout.addView(enter_number);
+        info_set_layout.addView(number_input);
+
+        //main layout
+        //------------------------------------------------------------------------------------------
+        LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        name_input.setLayoutParams(set_lp);
+        mail_input.setLayoutParams(set_lp);
+        skype_input.setLayoutParams(set_lp);
+        alertDialog.setView(info_set_layout);
+
+        alertDialog.setPositiveButton("SET",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        if(!name_input.getText().toString().isEmpty())
+                        {
+                            String mNewName =  name_input.getText().toString();
+                            //if we changing the name --> we changing the brunch
+                            if( mNewName.compareTo(mName) != 0 ) {
+
+                                mName = mNewName;
+                                ((TextView) findViewById(R.id.name)).setText(mName);
+
+                                changingDir = true;
+
+                                moveFirebaseRecord(mRootRef, FirebaseDatabase.getInstance().getReference().child("users").child(uid).child("people").child(mName));
+                            }
+                            ((TextView) findViewById(R.id.skype)).setText(skype_input.getText().toString());
+                            mRootRef.child("Info").child("skype").setValue(skype_input.getText().toString());
+
+
+                            String email = mail_input.getText().toString();
+                            if(isEmailValid(email))
+                            {
+                                String hyper_email = "<a href=\""+email+"\">" + email+"</a>";
+                                ((TextView) findViewById(R.id.mail)).setText(Html.fromHtml(hyper_email));
+                                ((TextView) findViewById(R.id.mail)).setMovementMethod(LinkMovementMethod.getInstance());
+                                mRootRef.child("Info").child("mail").setValue(hyper_email);
+                            }
+                            else
+                                {
+                                    Toast.makeText(ProfileView.this, "Not valid e-mail!",
+                                            Toast.LENGTH_LONG).show();
+                                }
+                            ((TextView) findViewById(R.id.number)).setText(number_input.getText().toString());
+                            mRootRef.child("Info").child("number").setValue(Defines.hlinkFromEmail(number_input.getText().toString()));
+                        }
+                        else
+                        {
+                            Toast.makeText(getApplicationContext(), "Name is empty", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
+        alertDialog.setNegativeButton("NO",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        dialog.cancel();
+                    }
+                });
+
+        alertDialog.show();
+
+    }
+
+    public boolean isEmailValid(String email)
+    {
+        String regExpn =
+                "^(([\\w-]+\\.)+[\\w-]+|([a-zA-Z]{1}|[\\w-]{2,}))@"
+                        +"((([0-1]?[0-9]{1,2}|25[0-5]|2[0-4][0-9])\\.([0-1]?"
+                        +"[0-9]{1,2}|25[0-5]|2[0-4][0-9])\\."
+                        +"([0-1]?[0-9]{1,2}|25[0-5]|2[0-4][0-9])\\.([0-1]?"
+                        +"[0-9]{1,2}|25[0-5]|2[0-4][0-9])){1}|"
+                        +"([a-zA-Z]+[\\w-]+\\.)+[a-zA-Z]{2,4})$";
+
+        CharSequence inputStr = email;
+
+        Pattern pattern = Pattern.compile(regExpn,Pattern.CASE_INSENSITIVE);
+        Matcher matcher = pattern.matcher(inputStr);
+
+        if(matcher.matches())
+            return true;
+        else
+            return false;
+    }
+
+    public void moveFirebaseRecord(DatabaseReference fromPath, final DatabaseReference toPath)
+    {
+        fromPath.addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+               toPath.setValue(dataSnapshot.getValue(), new DatabaseReference.CompletionListener() {
+                   @Override
+                   public void onComplete(DatabaseError databaseError, DatabaseReference databaseReference) {
+
+                       if(changingDir) {
+                           mRootRef.removeValue();
+                           finish();
+                       }
+                   }
+               });
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
+    }
+
+    private View horizontalDividerFactory()
+    {
+        View hd = new View(ProfileView.this);
+        hd.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
+        hd.setBackgroundColor(Color.GRAY);
+        return hd;
+    }
+
+    private void addNote()
+    {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(ProfileView.this);
+        alertDialog.setTitle("NOTE");
+        alertDialog.setMessage("Note name:");
+
+        final EditText input = new EditText(ProfileView.this);
+        input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+        TextView enter_s = new TextView(ProfileView.this);
+
+        //------------------------------------------------------------------------------------------
+        enter_s.setText("Enter note name:");
+        enter_s.setTextSize(15);
+        LinearLayout slider_set_layout = new LinearLayout(ProfileView.this);
+        slider_set_layout.setOrientation(LinearLayout.VERTICAL);
+        slider_set_layout.addView(enter_s);
+        slider_set_layout.addView(input);
+
+
+        //------------------------------------------------------------------------------------------
+        LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        input.setLayoutParams(set_lp);
+        alertDialog.setView(slider_set_layout);
+
+        //------------------------------------------------------------------------------------------
+        alertDialog.setPositiveButton("SET",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which) {
+                        if(!input.getText().toString().isEmpty())
+                        {
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(NOTE);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Text").setValue("");
+                            SetNote(input.getText().toString(), "");
+                        }
+                         else
+                        {
+                            Toast.makeText(getApplicationContext(), "One of dialog fields is empty", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
+        alertDialog.setNegativeButton("NO",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        dialog.cancel();
+                    }
+                });
+
+        alertDialog.show();
+
+
+    }
+
+    void SetNote(final String n_name, String inner_text)
+    {
+        final EditText et = new EditText(ProfileView.this);
+        et.addTextChangedListener(new TextWatcher()
+        {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after)
+            {}
+
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count)
+            {}
+
+            @Override
+            public void afterTextChanged(Editable s)
+            {
+                mRootRef.child("Widgets").child(n_name).child("Text").setValue(et.getText().toString());
+            }
+
+        });
+        TextView note_name = new TextView(ProfileView.this);
+        note_name.setText(n_name);
+        note_name.setTextSize(20);
+        note_name.setTextColor(Color.BLACK);
+        if(inner_text.isEmpty())
+            et.setHint("Enter your note here... ");
+        else
+            et.setText(inner_text);
+        LinearLayout note_layout = new LinearLayout(ProfileView.this);
+        note_layout.setOrientation(LinearLayout.VERTICAL);
+        note_layout.addView(note_name);
+        note_layout.addView(et);
+        note_layout.addView(horizontalDividerFactory());
+        Space space = new Space(ProfileView.this );
+        note_layout.addView(space);
+
+        note_layout.setOnLongClickListener(new View.OnLongClickListener() {
+        @Override
+        public boolean onLongClick(View v)
+        {
+            AlertDialog.Builder ad;
+            String title = "Warning !";
+            String message = "Do you really want to delete this widget?";
+            String button1String = "Yes";
+            String button2String = "Cancel";
+
+            ad = new AlertDialog.Builder(ProfileView.this);
+            ad.setTitle(title);  // заголовок
+            ad.setMessage(message); // сообщение
+            ad.setPositiveButton(button1String, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int arg1) {
+                    LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+                    LinearLayout dead_layout = ((LinearLayout) for_alertdialog);
+                    ll.removeView(dead_layout);
+                    mRootRef.child("Widgets").child(n_name).removeValue();
+                }
+            });
+            ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
+                public void onClick(DialogInterface dialog, int arg1) {
+                    Toast.makeText(ProfileView.this, "Canceled",
+                            Toast.LENGTH_LONG).show();
+                }
+            });
+            ad.setCancelable(true);
+            ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                public void onCancel(DialogInterface dialog) {
+                    Toast.makeText(ProfileView.this, "Canceled",
+                            Toast.LENGTH_LONG).show();
+                }}
+            );
+
+            for_alertdialog = v;
+            ad.show();
+
+            return true;
+        }});
+
+
+
+        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT); //height enough
+        ll.addView(note_layout, lp);
+
+    }
+
+
+    private void addCheckbox()
+    {
+
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(ProfileView.this);
+        alertDialog.setTitle("Checkbox");
+        alertDialog.setMessage("Checkbox info:");
+
+        //------------------------------------------------------------------------------------------
+        final EditText input = new EditText(ProfileView.this);
+        input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+        TextView enter_n = new TextView(ProfileView.this);
+
+        //------------------------------------------------------------------------------------------
+        enter_n.setText("Enter checkbox label:");
+        LinearLayout slider_set_layout = new LinearLayout(ProfileView.this);
+        slider_set_layout.setOrientation(LinearLayout.VERTICAL);
+        slider_set_layout.addView(enter_n);
+        slider_set_layout.addView(input);
+
+        //------------------------------------------------------------------------------------------
+        LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        input.setLayoutParams(set_lp);
+        alertDialog.setView(slider_set_layout);
+
+        alertDialog.setPositiveButton("SET",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        if(!input.getText().toString().isEmpty())
+                        {
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(CHECKBOX);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("isChecked").setValue(false);
+                            SetCheckBox(input.getText().toString(), false);
+                        }
+                         else
+                        {
+                            Toast.makeText(getApplicationContext(), "One of dialog fields is empty", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
+        alertDialog.setNegativeButton("NO",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        dialog.cancel();
+                    }
+                });
+
+        alertDialog.show();
+
+    }
+
+
+    void SetCheckBox(final String input, final Boolean checked)
+    {
+        CheckBox cb = new CheckBox(ProfileView.this);
+        cb.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                if (b)
+                {
+                    mRootRef.child("Widgets").child(input).child("isChecked").setValue(true);
+                }
+                else
+                {
+                    mRootRef.child("Widgets").child(input).child("isChecked").setValue(false);
+                }
+            }
+        });
+        cb.setText(input);
+        cb.setTextSize(20);
+        cb.setTextColor(Color.BLACK);
+        cb.setChecked(checked);
+
+        //layout
+        //------------------------------------------------------------------------------------------
+        final LinearLayout cb_layout = new LinearLayout(ProfileView.this);
+        cb_layout.setOrientation(LinearLayout.VERTICAL);
+        cb_layout.addView(cb);
+        cb_layout.addView(horizontalDividerFactory());
+        Space space = new Space(ProfileView.this );
+        cb_layout.addView(space);
+        cb.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v)
+            {
+                AlertDialog.Builder ad;
+                String title = "Warning !";
+                String message = "Do you really want to delete this widget?";
+                String button1String = "Yes";
+                String button2String = "Cancel";
+
+                ad = new AlertDialog.Builder(ProfileView.this);
+                ad.setTitle(title);  // заголовок
+                ad.setMessage(message); // сообщение
+                ad.setPositiveButton(button1String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+                        ll.removeView(cb_layout);
+                        mRootRef.child("Widgets").child(input).removeValue();
+                    }
+                });
+                ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        Toast.makeText(ProfileView.this, "Canceled",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+                ad.setCancelable(true);
+                ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    public void onCancel(DialogInterface dialog) {
+                        Toast.makeText(ProfileView.this, "Canceled",
+                                Toast.LENGTH_LONG).show();
+                    }}
+                );
+
+                ad.show();
+
+                return true;
+            }});
+
+
+        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        ll.addView(cb_layout, lp);
+    }
+
+
+    private void addSeekBar()
+    {
+
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(ProfileView.this);
+        alertDialog.setTitle("SLIDER");
+        alertDialog.setMessage("Slider info:");
+
+        //------------------------------------------------------------------------------------------
+        final EditText input = new EditText(ProfileView.this);
+        input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+        final EditText max_input = new EditText(ProfileView.this);
+        TextView enter_s = new TextView(ProfileView.this);
+        TextView enter_m = new TextView(ProfileView.this);
+
+        max_input.setInputType(InputType.TYPE_CLASS_NUMBER
+                | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        enter_s.setText("Enter slider name:");
+        enter_m.setText("Enter max value:");
+
+        //------------------------------------------------------------------------------------------
+        LinearLayout slider_set_layout = new LinearLayout(ProfileView.this);
+        slider_set_layout.setOrientation(LinearLayout.VERTICAL);
+        slider_set_layout.addView(enter_s);
+        slider_set_layout.addView(input);
+        slider_set_layout.addView(enter_m);
+        slider_set_layout.addView(max_input);
+
+        //------------------------------------------------------------------------------------------
+        LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        input.setLayoutParams(set_lp);
+        alertDialog.setView(slider_set_layout);
+
+        alertDialog.setPositiveButton("SET",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+
+
+                        if(!input.getText().toString().isEmpty() && !max_input.getText().toString().isEmpty())
+                        {
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(SLIDER);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Max_Num").setValue(Integer.parseInt(max_input.getText().toString()));
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Cur_Num").setValue(0);
+                            SetSeekBar(input.getText().toString(), Integer.parseInt(max_input.getText().toString()), 0);
+
+                        }
+                         else
+                        {
+                            Toast.makeText(getApplicationContext(), "One of dialog fields is empty", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
+        alertDialog.setNegativeButton("NO",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        dialog.cancel();
+                    }
+                });
+
+        alertDialog.show();
+
+    }
+
+    private Vector<TextView> slider_arch;
+    void SetSeekBar(final String name, final int max, final int current_num)
+    {
+        SeekBar sbar = new SeekBar(ProfileView.this);
+        slider_arch.add(new TextView(ProfileView.this));
+
+        sbar.setMax(max);
+        sbar.setProgress(current_num);
+        final String UserText = name;
+        slider_arch.get(slider_arch.size() - 1).setText(UserText + ": " + sbar.getProgress() + "/" + sbar.getMax());
+        final TextView slider_txt = slider_arch.get(slider_arch.size() - 1);
+        slider_txt.setTextSize(20);
+        slider_txt.setTextColor(Color.BLACK);
+
+        sbar.setOnSeekBarChangeListener(new OnSeekBarChangeListener() {
+            int progress = 0;
+
+            @Override
+            public void onProgressChanged(SeekBar seekBar, int progresValue, boolean fromUser) {
+                progress = progresValue;
+                TextView slider_tmp = slider_txt;
+                slider_tmp.setText(UserText + ": " + progress + "/" + seekBar.getMax());
+
+                mRootRef.child("Widgets").child(name).child("Cur_Num").setValue(progress);
+            }
+
+            @Override
+            public void onStartTrackingTouch(SeekBar seekBar) {
+
+            }
+
+            @Override
+            public void onStopTrackingTouch(SeekBar seekBar) {
+
+                TextView slider_tmp = slider_txt;
+                slider_tmp.setText(UserText + ": " + progress + "/" + seekBar.getMax());
+            }
+        });
+
+        //------------------------------------------------------------------------------------------
+        LinearLayout slider_layout = new LinearLayout(ProfileView.this);
+        slider_layout.setOrientation(LinearLayout.VERTICAL);
+        slider_layout.addView(slider_arch.get(slider_arch.size() - 1));
+        slider_layout.addView(sbar);
+        slider_layout.addView(horizontalDividerFactory());
+        Space space = new Space(ProfileView.this );
+        slider_layout.addView(space);
+
+        slider_layout.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v)
+            {
+                AlertDialog.Builder ad;
+                String title = "Warning !";
+                String message = "Do you really want to delete this widget?";
+                String button1String = "Yes";
+                String button2String = "Cancel";
+
+                ad = new AlertDialog.Builder(ProfileView.this);
+                ad.setTitle(title);  // заголовок
+                ad.setMessage(message); // сообщение
+                ad.setPositiveButton(button1String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+                        LinearLayout dead_layout = ((LinearLayout) for_alertdialog);
+                        ll.removeView(dead_layout);
+                        mRootRef.child("Widgets").child(name).removeValue();
+                    }
+                });
+                ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        Toast.makeText(ProfileView.this, "Canceled",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+                ad.setCancelable(true);
+                ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    public void onCancel(DialogInterface dialog) {
+                        Toast.makeText(ProfileView.this, "Canceled",
+                                Toast.LENGTH_LONG).show();
+                    }}
+                );
+
+                for_alertdialog = v;
+                ad.show();
+
+                return true;
+            }});
+
+
+        //------------------------------------------------------------------------------------------
+        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT);
+        ll.addView(slider_layout, lp);
+    }
+
+
+    private void addCombobox() {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(ProfileView.this);
+        alertDialog.setTitle("COMBOBOX");
+        alertDialog.setMessage("Combobox info:");
+
+        //------------------------------------------------------------------------------------------
+        final EditText input = new EditText(ProfileView.this);
+        input.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+        final EditText item1 = new EditText(ProfileView.this);
+        item1.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+        final EditText item2 = new EditText(ProfileView.this);
+        item2.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+        final EditText item3 = new EditText(ProfileView.this);
+        item3.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+        final EditText item4 = new EditText(ProfileView.this);
+        item4.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+        final EditText item5 = new EditText(ProfileView.this);
+        item5.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+        TextView enter_s = new TextView(ProfileView.this);
+        TextView enter_m = new TextView(ProfileView.this);
+
+        //------------------------------------------------------------------------------------------
+        enter_s.setText("Enter combobox name:");
+        enter_m.setText("Enter items:");
+        //------------------------------------------------------------------------------------------
+        LinearLayout slider_set_layout = new LinearLayout(ProfileView.this);
+        slider_set_layout.setOrientation(LinearLayout.VERTICAL);
+        slider_set_layout.addView(enter_s);
+        slider_set_layout.addView(input);
+        slider_set_layout.addView(enter_m);
+        slider_set_layout.addView(item1);
+        slider_set_layout.addView(item2);
+        slider_set_layout.addView(item3);
+        slider_set_layout.addView(item4);
+        slider_set_layout.addView(item5);
+
+        //------------------------------------------------------------------------------------------
+        LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        input.setLayoutParams(set_lp);
+        alertDialog.setView(slider_set_layout);
+
+        //------------------------------------------------------------------------------------------
+        alertDialog.setPositiveButton("SET",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+
+                        //set up list of items
+
+                        String[] list = new String[5];
+                        Integer active_item = new Integer(0);
+                       if (!item1.getText().toString().isEmpty()) {
+                            list[active_item] = item1.getText().toString();
+                            active_item++;
+                        }
+                        if (!item2.getText().toString().isEmpty()) {
+                            list[active_item] = item2.getText().toString();
+                            active_item++;
+                        }
+                        if (!item3.getText().toString().isEmpty()) {
+                            list[active_item] = item3.getText().toString();
+                            active_item++;
+                        }
+                        if (!item4.getText().toString().isEmpty()) {
+                            list[active_item] = item4.getText().toString();
+                            active_item++;
+                        }
+                        if (!item5.getText().toString().isEmpty()) {
+                            list[active_item] = item5.getText().toString();
+                            active_item++;
+                        }
+
+                        String[] final_list = new String[active_item];
+
+                        for(int i =0; i<active_item; i++)
+                        {
+                            final_list[i] = list[i];
+                        }//set up spinner
+                        if( !input.getText().toString().isEmpty() && active_item!=0 )
+                        {
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Type").setValue(COMBOBOX);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Items_Num").setValue(active_item);
+                            List items_list = new ArrayList<String>(Arrays.asList(final_list));
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Items").setValue(items_list);
+                            mRootRef.child("Widgets").child(input.getText().toString()).child("Chosen_One").setValue(final_list[0]);
+                            SetCombobox(input.getText().toString(),final_list, final_list[0] );
+                        }
+                        else
+                        {
+                            Toast.makeText(getApplicationContext(), "One of dialog fields is empty", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+        alertDialog.setNegativeButton("NO",
+                new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        dialog.cancel();
+                    }
+                });
+
+        alertDialog.show();
+    }
+
+    void SetCombobox(final String name, final String[] list, String chosen)
+    {
+        TextView s_name = new TextView(ProfileView.this);
+        s_name.setText(name);
+        s_name.setTextSize(20);
+        s_name.setTextColor(Color.BLACK);
+        Spinner spinner = new Spinner(ProfileView.this);
+
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                ((TextView) parent.getChildAt(0)).setTextColor(Color.BLACK);
+                ((TextView) parent.getChildAt(0)).setTextSize(20);
+            }
+
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view,
+                                       int pos, long id) {
+                mRootRef.child("Widgets").child(name).child("Chosen_One").setValue(list[pos]);
+            }
+        });
+        CustomAdapter adapter = new CustomAdapter(ProfileView.this,
+                android.R.layout.simple_spinner_item, list);
+        adapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(adapter);
+        if(!chosen.isEmpty())
+        spinner.setSelection(adapter.getPosition(chosen));
+
+        //------------------------------------------------------------------------------------------
+        LinearLayout s_layout = new LinearLayout(ProfileView.this);
+        s_layout.setOrientation(LinearLayout.HORIZONTAL);
+        s_layout.addView(s_name);
+        s_layout.addView(spinner);
+
+        //------------------------------------------------------------------------------------------
+        LinearLayout s2_layout = new LinearLayout(ProfileView.this);
+        s2_layout.setOrientation(LinearLayout.VERTICAL);
+        s2_layout.addView(s_layout);
+        s2_layout.addView(horizontalDividerFactory());
+        Space space = new Space(ProfileView.this );
+        s2_layout.addView(space);
+
+        s2_layout.setOnLongClickListener(new View.OnLongClickListener() {
+            @Override
+            public boolean onLongClick(View v)
+            {
+                AlertDialog.Builder ad;
+                String title = "Warning !";
+                String message = "Do you really want to delete this widget?";
+                String button1String = "Yes";
+                String button2String = "Cancel";
+
+                ad = new AlertDialog.Builder(ProfileView.this);
+                ad.setTitle(title);  // заголовок
+                ad.setMessage(message); // сообщение
+                ad.setPositiveButton(button1String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+                        LinearLayout dead_layout = ((LinearLayout) for_alertdialog);
+                        ll.removeView(dead_layout);
+                        mRootRef.child("Widgets").child(name).removeValue();
+                    }
+                });
+                ad.setNegativeButton(button2String, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int arg1) {
+                        Toast.makeText(ProfileView.this, "Canceled",
+                                Toast.LENGTH_LONG).show();
+                    }
+                });
+                ad.setCancelable(true);
+                ad.setOnCancelListener(new DialogInterface.OnCancelListener() {
+                    public void onCancel(DialogInterface dialog) {
+                        Toast.makeText(ProfileView.this, "Canceled",
+                                Toast.LENGTH_LONG).show();
+                    }}
+                    );
+
+                    for_alertdialog = v;
+                        ad.show();
+
+                        return true;
+                }});
+
+        LinearLayout ll = (LinearLayout) findViewById(R.id.linearLayout);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT); //height enough
+        ll.addView(s2_layout, lp);
+    }
+
+    private ChildEventListener widgetsCEL = null;
+    private ChildEventListener projectsCEL = null;
+    //get widget list from database
+    private void SetUpWidgetList()
+    {
+        widgetsCEL = mRootRef.child("Widgets").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+                String widget_name = dataSnapshot.getKey();
+
+
+                Long type=0L;
+                if(dataSnapshot.child("Type").exists())
+                {
+                    type = (long)dataSnapshot.child("Type").getValue();
+
+                }
+
+                int i_type = type.intValue();
+                switch(i_type)
+                {
+                    case NOTE:
+                        if(dataSnapshot.child("Text").exists()) {
+                            type = (long)dataSnapshot.child("Type").getValue();
+
+                            SetNote(widget_name, dataSnapshot.child("Text").getValue(String.class));
+                        }
+                        break;
+
+                    case CHECKBOX:
+                        if(dataSnapshot.child("isChecked").exists()) {
+                            SetCheckBox(widget_name, dataSnapshot.child("isChecked").getValue(Boolean.class));
+                        }
+                        break;
+
+                    case SLIDER:
+                        if(dataSnapshot.child("Max_Num").exists()) {
+                            Long max_num = 0L;
+                            max_num = (long) dataSnapshot.child("Max_Num").getValue();
+                            Long cur_num = 0L;
+                            cur_num = (long) dataSnapshot.child("Cur_Num").getValue();
+                            int i_max_num = max_num.intValue();
+                            int i_cur_num = cur_num.intValue();
+
+                            SetSeekBar(widget_name, i_max_num, i_cur_num);
+                        }
+                        break;
+
+                    case COMBOBOX:
+                        if(dataSnapshot.child("Items_Num").exists()) {
+                            Long items_num = 0L;
+                            items_num = (long) dataSnapshot.child("Items_Num").getValue();
+                            int i_items_num = items_num.intValue();
+                            String[] list = new String[i_items_num];
+
+                            for (Integer i = 0; i < i_items_num; i++) {
+                                list[i] = dataSnapshot.child("Items").child(i.toString()).getValue(String.class);
+                            }
+
+                            SetCombobox(widget_name, list, dataSnapshot.child("Chosen_One").getValue(String.class));
+                        }
+                        break;
+
+                    case SPINBOX:
+                        break;
+                }
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+               // RemovePersonOrProject(dataSnapshot.getKey());
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+
+        projectsCEL = mRootRef.child("Projects").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+
+                TextView proj = new TextView(ProfileView.this);
+                proj.setText(dataSnapshot.getKey());
+                proj.setTextColor(Color.BLACK);
+                proj.setTextSize(20);
+                LinearLayout ll = (LinearLayout) findViewById(R.id.projects_layout);
+                LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT);
+
+                ll.addView(proj, lp);
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+            }
+            }
+        );
+        mRootRef.child("Info").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot, String s) {
+
+                String key = dataSnapshot.getKey();
+
+                if (key.compareTo("mail") == 0 )
+                {
+                    ((TextView) findViewById(R.id.mail)).setText(Html.fromHtml(dataSnapshot.getValue(String.class)));
+                    ((TextView) findViewById(R.id.mail)).setMovementMethod(LinkMovementMethod.getInstance());
+                }
+                else if (key.compareTo("skype") == 0 )
+                {
+
+                    ((TextView) findViewById(R.id.skype)).setText(dataSnapshot.getValue(String.class));
+                }
+                else if (key.compareTo("number") == 0 )
+                {
+                    ((TextView) findViewById(R.id.number)).setText(dataSnapshot.getValue(String.class));
+                }
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+        mRootRef.child("Tasks").addChildEventListener(new ChildEventListener() {
+            @Override
+            public void onChildAdded(DataSnapshot dataSnapshot3, String s) {
+                final DataSnapshot dataSnapshot = dataSnapshot3;
+                final String key = dataSnapshot.getKey();
+                mRootRef.getRoot().child("Users").child(uid).child("Tasks").child(key).addListenerForSingleValueEvent(new ValueEventListener() {
+                    @Override
+                    public void onDataChange(DataSnapshot dataSnapshot2) {
+                        CheckBox task = new CheckBox(ProfileView.this);
+                        task.setChecked(Boolean.parseBoolean(dataSnapshot2.child("Status").getValue(String.class)));
+                        task.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+                            @Override
+                            public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
+                                if (b)
+                                {
+                                    mRootRef.getRoot().child("Users").child(uid).child("Tasks").child(key).child("Status").setValue("true");
+                                    mRootRef.child("Tasks").child(key).setValue(true);
+
+                                }
+                                else
+                                {
+                                    mRootRef.getRoot().child("Users").child(uid).child("Tasks").child(key).child("Status").setValue("false");
+                                    mRootRef.child("Tasks").child(key).setValue(false);
+                                }
+                            }
+                        });
+                        task.setOnLongClickListener(new View.OnLongClickListener() {
+                            @Override
+                            public boolean onLongClick(View view) {
+                                AddOrEditTask(key);
+                                return true;
+                            }
+                        });
+                        task.setText(dataSnapshot.getKey());
+                        task.setTextColor(Color.BLACK);
+                        task.setTextSize(20);
+                        LinearLayout ll = (LinearLayout) findViewById(R.id.tasks_layout);
+                        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+                                LinearLayout.LayoutParams.MATCH_PARENT,
+                                LinearLayout.LayoutParams.WRAP_CONTENT);
+
+                        ll.addView(task, lp);
+                    }
+
+                    @Override
+                    public void onCancelled(DatabaseError databaseError) {
+
+                    }
+                });
+
+
+
+            }
+
+            @Override
+            public void onChildChanged(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onChildRemoved(DataSnapshot dataSnapshot) {
+
+            }
+
+            @Override
+            public void onChildMoved(DataSnapshot dataSnapshot, String s) {
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+
+    private void SetUpImage()
+    {
+        final File file = getFilesDir();
+
+        StorageReference ProfileImgRef = mStorageRef.child("/"+uid + "/" + mName+"/ProfileImage/");
+        ProfileImgRef.getDownloadUrl().addOnSuccessListener(new OnSuccessListener<Uri>() {
+            @Override
+            public void onSuccess(Uri uri) {
+
+                ImageView image = (ImageView) findViewById(R.id.avatar);
+                Glide.with(ProfileView.this).load(uri.toString()).into(image);
+            }
+        });
+    }
+
+    public void AddOrEditTask()
+    {
+        AddOrEditTask(null, null, null, null, false);
+    }
+
+    public void AddOrEditTask(final String name)
+    {
+        mRootRef.getRoot().child("Users").child(uid).child("Tasks").child(name).addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+                String date = null, time = null, descr = null;
+                boolean status = Boolean.parseBoolean(dataSnapshot.child("Status").getValue(String.class));
+                if(dataSnapshot.child("Date").exists()) {
+                    date = dataSnapshot.child("Date").getValue(String.class);
+                }
+                if(dataSnapshot.child("Time").exists()) {
+                    time = dataSnapshot.child("Time").getValue(String.class);
+                }
+                if(dataSnapshot.child("Description").exists()) {
+                    descr = dataSnapshot.child("Description").getValue(String.class);
+                }
+
+                AddOrEditTask(name, date, time, descr, status);
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    public void AddOrEditTask(final String name, final String date, final String time, final String description, final boolean status) {
+        //build dialog with request for name input
+        android.support.v7.app.AlertDialog.Builder builder = new android.support.v7.app.AlertDialog.Builder(ProfileView.this);
+        builder.setTitle("Edit task");
+
+        //------------------------------------------------------------------------------------------
+        final LinearLayout ll = new LinearLayout(ProfileView.this);
+        ll.setLayoutParams(new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT, 1.0f));
+        ll.setOrientation(LinearLayout.VERTICAL);
+        ll.setGravity(Gravity.CENTER);
+
+        //------------------------------------------------------------------------------------------
+        final EditText nameInput = new EditText(ProfileView.this);
+        nameInput.setInputType(InputType.TYPE_CLASS_TEXT);
+        nameInput.setHint("Name");
+        nameInput.setText(name != null ? name : "");
+        ll.addView(nameInput);
+
+        //------------------------------------------------------------------------------------------
+        final EditText timeInput = new EditText(ProfileView.this);
+        timeInput.setKeyListener(null);
+        timeInput.setHint("Expire Time");
+        timeInput.setText(time != null ? time : "");
+        if(date == null) {
+            timeInput.setVisibility(View.GONE);
+        }
+        timeInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if(b) {
+                    java.util.Calendar c = java.util.Calendar.getInstance();
+                    TimePickerDialog tpd = new TimePickerDialog(ProfileView.this, new TimePickerDialog.OnTimeSetListener() {
+                        @Override
+                        public void onTimeSet(TimePicker timePicker, int hour, int minute) {
+                            timeInput.setText(hour + ":" + minute);
+                        }
+                    }, c.get(java.util.Calendar.HOUR_OF_DAY), c.get(java.util.Calendar.MINUTE), true);
+                    tpd.setTitle("Pick deadline time");
+                    tpd.show();
+                }
+            }
+        });
+
+        final EditText dateInput = new EditText(ProfileView.this);
+        dateInput.setKeyListener(null);
+        dateInput.setHint("Expire Date");
+        dateInput.setText(date != null ? date : "");
+        dateInput.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if(b) {
+                    java.util.Calendar c = java.util.Calendar.getInstance();
+                    DatePickerDialog dpd = new DatePickerDialog(ProfileView.this, new DatePickerDialog.OnDateSetListener() {
+                        @Override
+                        public void onDateSet(DatePicker datePicker, int year, int month, int day) {
+                            java.util.Calendar date = java.util.Calendar.getInstance();
+                            date.set(year, month, day);
+                            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.ENGLISH);
+                            dateInput.setText(sdf.format(date.getTime()));
+                            timeInput.setVisibility(View.VISIBLE);
+                        }
+                    }, c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH), c.get(java.util.Calendar.DATE));
+                    dpd.setTitle("Pick deadline date.");
+                    dpd.show();
+                }
+            }
+        });
+        ll.addView(dateInput);
+        ll.addView(timeInput);
+
+        final EditText descriptionInput = new EditText(ProfileView.this);
+        descriptionInput.setHint("Description");
+        descriptionInput.setText(description != null ? description : "");
+        ll.addView(descriptionInput);
+
+        builder.setView(ll);
+
+        //set on 'ok' listener
+        builder.setPositiveButton("OK", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                String enteredName = nameInput.getText().toString();
+                if(!enteredName.isEmpty()) {
+                    DatabaseReference child = mRootRef.child("Tasks");
+                    if(name != null && !enteredName.equals(name))
+                    {
+                        child.child(name).removeValue();
+                    }
+
+                    child.child(enteredName).setValue(status);
+
+                    child = child.getRoot().child("Users").child(mAuth.getCurrentUser().getUid()).child("Tasks").child(enteredName);
+
+                    Map<String, String> data = new HashMap<String, String>();
+                    data.put("Status", String.valueOf(status));
+                    data.put("Date", dateInput.getText().toString());
+                    data.put("Description", descriptionInput.getText().toString());
+                    data.put("Time", timeInput.getText().toString());
+                    child.setValue(data);
+
+                    child.child("People").child(mName).setValue(true);
+
+                }
+            }
+        });
+
+        //set on 'cancel' listener
+        builder.setNegativeButton("Cancel", new DialogInterface.OnClickListener() {
+            @Override
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.cancel();
+            }
+        });
+
+        //show dialog
+        builder.show();
+    }
+
+    public Boolean is_ok = true;
+    private void AddToProject() {
+        final AlertDialog.Builder alertDialog = new AlertDialog.Builder(ProfileView.this);
+        alertDialog.setTitle("ATTACH TO PROJECT");
+        alertDialog.setMessage("Projects:");
+
+
+        mRootRef.getRoot().child("Users").child(uid).child("Projects").addListenerForSingleValueEvent(new ValueEventListener() {
+            @Override
+            public void onDataChange(DataSnapshot dataSnapshot) {
+
+                final LinearLayout project_list_layout = new LinearLayout(ProfileView.this);
+                project_list_layout.setOrientation(LinearLayout.VERTICAL);
+
+                for (DataSnapshot ds : dataSnapshot.getChildren()) {
+                    final Button proj = new Button(ProfileView.this);
+
+                    final String name = ds.getKey();
+                    mRootRef.getRoot().child("Users").child(uid).child("People").child(mName).child("Projects").addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot2) {
+                            for (DataSnapshot ds2 : dataSnapshot2.getChildren()) {
+                                if (name.compareTo(ds2.getKey()) == 0) {
+                                    is_ok = false;
+                                }
+                            }
+                            if (is_ok) {
+
+                                proj.setText(name);
+                                proj.setTextColor(Color.BLACK);
+                                proj.setTextSize(20);
+                                project_list_layout.addView(proj);
+                                proj.setOnClickListener(new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        mRootRef.getRoot().child("Users").child(uid).child("Projects").child(name).child("People").child(mName).setValue(true);
+                                        mRootRef.child("Projects").child(name).setValue(true);
+                                    }
+                                });
+                            }
+                            is_ok = true;
+                        }
+
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+
+                        }
+                    });
+
+                }
+                final ScrollView sv = new ScrollView(ProfileView.this);
+                sv.addView(project_list_layout);
+
+
+
+                alertDialog.setView(sv);
+
+
+                alertDialog.setNegativeButton("CANCEL",
+                        new DialogInterface.OnClickListener() {
+                            public void onClick(DialogInterface dialog, int which) {
+                                dialog.cancel();
+                            }
+                        });
+
+                //alertDialog.show();
+                final AlertDialog alert = alertDialog.create();
+
+                alert.show();
+
+            }
+
+            @Override
+            public void onCancelled(DatabaseError databaseError) {
+
+            }
+        });
+    }
+
+    private void CreateMeetingDialog()
+    {
+        AlertDialog.Builder alertDialog = new AlertDialog.Builder(ProfileView.this);
+        alertDialog.setTitle("MEETING");
+        alertDialog.setMessage("Meeting info:");
+
+        //------------------------------------------------------------------------------------------
+        final EditText input_name = new EditText(ProfileView.this);
+        input_name.setFilters(new InputFilter[]{Defines.NAME_FILTER});
+
+        //------------------------------------------------------------------------------------------
+        final EditText input_time = new EditText(ProfileView.this);
+
+        input_time.setKeyListener(null);
+        input_time.setHint("Meeting Time");
+        input_time.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if(b) {
+                    java.util.Calendar c = java.util.Calendar.getInstance();
+                    TimePickerDialog tpd = new TimePickerDialog(ProfileView.this, new TimePickerDialog.OnTimeSetListener() {
+                        @Override
+                        public void onTimeSet(TimePicker timePicker, int hour, int minute) {
+                            input_time.setText(hour + ":" + minute);
+                        }
+                    }, c.get(java.util.Calendar.HOUR_OF_DAY), c.get(java.util.Calendar.MINUTE), true);
+                    tpd.setTitle("Pick meeting time");
+                    tpd.show();
+                }
+            }
+        });
+        //------------------------------------------------------------------------------------------
+        final EditText input_date = new EditText(ProfileView.this);
+        input_date.setKeyListener(null);
+        input_date.setHint("Meeting Date");
+        input_date.setOnFocusChangeListener(new View.OnFocusChangeListener() {
+            @Override
+            public void onFocusChange(View view, boolean b) {
+                if(b) {
+                    java.util.Calendar c = java.util.Calendar.getInstance();
+                    DatePickerDialog dpd = new DatePickerDialog(ProfileView.this, new DatePickerDialog.OnDateSetListener() {
+                        @Override
+                        public void onDateSet(DatePicker datePicker, int year, int month, int day) {
+                            java.util.Calendar date = java.util.Calendar.getInstance();
+                            date.set(year, month, day);
+                            SimpleDateFormat sdf = new SimpleDateFormat("dd.MM.yyyy", Locale.ENGLISH);
+                            input_date.setText(sdf.format(date.getTime()));
+                        }
+                    }, c.get(java.util.Calendar.YEAR), c.get(java.util.Calendar.MONTH), c.get(java.util.Calendar.DATE));
+                    dpd.setTitle("Pick deadline date.");
+                    dpd.show();
+                }
+            }
+        });
+
+        //------------------------------------------------------------------------------------------
+        final EditText input_duration = new EditText(ProfileView.this);
+        input_duration.setInputType(InputType.TYPE_CLASS_NUMBER
+                | InputType.TYPE_NUMBER_FLAG_SIGNED);
+
+        input_duration.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+
+            }
+        });
+
+        //------------------------------------------------------------------------------------------
+        final EditText input_place = new EditText(ProfileView.this);
+
+        //------------------------------------------------------------------------------------------
+        final Vector<EditText> input_attendees = new Vector<EditText>();
+
+        //------------------------------------------------------------------------------------------
+        final LinearLayout set_layout = new LinearLayout(ProfileView.this);
+        set_layout.setOrientation(LinearLayout.VERTICAL);
+        //layout
+        final EditText input_attendees_num = new EditText(ProfileView.this);
+        input_attendees_num.setInputType(InputType.TYPE_CLASS_NUMBER
+                | InputType.TYPE_NUMBER_FLAG_SIGNED);
+        input_attendees_num.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void onTextChanged(CharSequence charSequence, int i, int i1, int i2) {
+
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable)
+            {
+                if (!input_attendees_num.getText().toString().isEmpty())
+                {
+                    Integer a_num = Integer.parseInt(input_attendees_num.getText().toString());
+                    Integer vector_size = input_attendees.size();
+
+                    if (a_num > vector_size) {
+                        do {
+                            final EditText i_attendee = new EditText(ProfileView.this);
+                            input_attendees.addElement(i_attendee);
+                            set_layout.addView(i_attendee);
+                        } while (input_attendees.size() != a_num);
+                    } else if (a_num < vector_size) {
+                        do {
+                            set_layout.removeView(input_attendees.get(input_attendees.size() - 1));
+                            input_attendees.remove(input_attendees.size() - 1);
+                        } while (input_attendees.size() != a_num);
+                    }
+                }
+            }
+        });
+
+        //------------------------------------------------------------------------------------------
+        final EditText input_description = new EditText(ProfileView.this);
+        input_description.setHint("Enter Description");
+
+        //------------------------------------------------------------------------------------------
+        TextView enter_n = new TextView(ProfileView.this);
+        enter_n.setText("Enter meeting name:");
+        TextView enter_d = new TextView(ProfileView.this);
+        enter_d.setText("Enter date:");
+        TextView enter_t = new TextView(ProfileView.this);
+        enter_t.setText("Enter time:");
+        TextView enter_drt = new TextView(ProfileView.this);
+        enter_drt.setText("Meeting duration:");
+        TextView enter_p = new TextView(ProfileView.this);
+        enter_p.setText("Enter place:");
+        TextView enter_desc = new TextView(ProfileView.this);
+        enter_desc.setText("Description (minutes):");
+        TextView enter_num = new TextView(ProfileView.this);
+        enter_num.setText("Enter number of attendees:");
+        TextView enter_atnd = new TextView(ProfileView.this);
+        enter_atnd.setText("Choose attendees:");
+
+        TextView already = new TextView(ProfileView.this);
+        already.setText(mName + "is invited to the meeting.");
+        already.setTextColor(Color.GREEN);
+        already.setTextSize(15);
+
+
+        //------------------------------------------------------------------------------------------
+        set_layout.addView(enter_n);
+        set_layout.addView(input_name);
+        set_layout.addView(enter_t);
+        set_layout.addView(input_date);
+        set_layout.addView(enter_d);
+        set_layout.addView(input_time);
+        set_layout.addView(enter_drt);
+        set_layout.addView(input_duration);
+        set_layout.addView(enter_p);
+        set_layout.addView(input_place);
+        set_layout.addView(enter_desc);
+        set_layout.addView(input_description);
+        set_layout.addView(enter_num);
+        set_layout.addView(input_attendees_num);
+        set_layout.addView(enter_atnd);
+        set_layout.addView(already);
+
+
+
+
+
+
+        LinearLayout.LayoutParams set_lp = new LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.MATCH_PARENT,
+                LinearLayout.LayoutParams.MATCH_PARENT);
+        ScrollView sv = new ScrollView(ProfileView.this);
+        sv.addView(set_layout, set_lp);
+        alertDialog.setView(sv);
+
+        alertDialog.setPositiveButton("SET",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+
+
+                        if(!input_name.getText().toString().isEmpty() )
+                        {
+                            mRootRef.child("Meetings").child(input_name.getText().toString()).setValue(true);
+                        }
+                        else
+                        {
+                            Toast.makeText(getApplicationContext(), "All fields except descriptions and additional participants are required.", Toast.LENGTH_SHORT).show();
+                        }
+                    }
+                });
+
+        alertDialog.setNegativeButton("NO",
+                new DialogInterface.OnClickListener()
+                {
+                    public void onClick(DialogInterface dialog, int which)
+                    {
+                        dialog.cancel();
+                    }
+                });
+
+        alertDialog.show();
+
+    }
+
+
+    GoogleAccountCredential credential;
+
+    private void CreateMeeting()
+    {
+        credential =
+                GoogleAccountCredential.usingOAuth2(this, Collections.singleton(CalendarScopes.CALENDAR));
+
+
+    }
+
+    public void createEvent(GoogleAccountCredential mCredential) {
+
+        HttpTransport transport = AndroidHttp.newCompatibleTransport();
+        JsonFactory jsonFactory = JacksonFactory.getDefaultInstance();
+        com.google.api.services.calendar.Calendar service = new com.google.api.services.calendar.Calendar.Builder(
+                transport, jsonFactory, mCredential)
+                .setApplicationName("PMNote")
+                .build();
+
+
+        Event event = new Event()
+                .setSummary("Event- April 2016")
+                .setLocation("Dhaka")
+                .setDescription("New Event 1");
+
+        DateTime startDateTime = new DateTime("2016-04-17T18:10:00+06:00");
+        EventDateTime start = new EventDateTime()
+                .setDateTime(startDateTime)
+                .setTimeZone("Asia/Dhaka");
+        event.setStart(start);
+
+        DateTime endDateTime = new DateTime("2016-04-17T18:40:00+06:00");
+        EventDateTime end = new EventDateTime()
+                .setDateTime(endDateTime)
+                .setTimeZone("Asia/Dhaka");
+        event.setEnd(end);
+
+        String[] recurrence = new String[]{"RRULE:FREQ=DAILY;COUNT=2"};
+        event.setRecurrence(Arrays.asList(recurrence));
+
+        EventAttendee[] attendees = new EventAttendee[]{
+                new EventAttendee().setEmail("abir@aksdj.com"),
+                new EventAttendee().setEmail("asdasd@andlk.com"),
+        };
+        event.setAttendees(Arrays.asList(attendees));
+
+        EventReminder[] reminderOverrides = new EventReminder[]{
+                new EventReminder().setMethod("email").setMinutes(24 * 60),
+                new EventReminder().setMethod("popup").setMinutes(10),
+        };
+        Event.Reminders reminders = new Event.Reminders()
+                .setUseDefault(false)
+                .setOverrides(Arrays.asList(reminderOverrides));
+        event.setReminders(reminders);
+
+        String calendarId = "primary";
+        try {
+            event = service.events().insert(calendarId, event).execute();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        System.out.printf("Event created: %s\n", event.getHtmlLink());
+
+    }
+}
+
