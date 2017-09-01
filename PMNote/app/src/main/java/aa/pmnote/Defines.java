@@ -75,7 +75,7 @@ public class Defines {
     final static String PERSON_PLACEHOLDER = "None";
     final static String PERSON_PROJECTS = PROJECTS_FOLDER;
     final static String PERSON_INFO = "Info";
-    final static String PERSON_INFO_EMAIL = "email";
+    final static String PERSON_INFO_EMAIL = "mail";
 
     private static ArrayList<String> taskOptions = new ArrayList<>();
     private static ArrayList<String> projectsOptions = new ArrayList<>();

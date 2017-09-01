@@ -64,6 +64,7 @@ import com.google.api.services.calendar.model.Event;
 import com.google.api.services.calendar.model.EventAttendee;
 import com.google.api.services.calendar.model.EventDateTime;
 import com.google.api.services.calendar.model.EventReminder;
+import com.google.common.io.LineReader;
 import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.ChildEventListener;
 import com.google.firebase.database.DataSnapshot;
@@ -144,6 +145,10 @@ public class ProfileView extends AppCompatActivity
         mName = getIntent().getStringExtra(NAME_TAG);
         ((TextView) findViewById(R.id.name)).setText(mName);
 
+        //set up mail
+        ((TextView) findViewById(R.id.mail)).setText(mName);
+
+
         mAuth = FirebaseAuth.getInstance();
         mAuthStateListener = new FirebaseAuth.AuthStateListener() {
             @Override
@@ -202,8 +207,20 @@ public class ProfileView extends AppCompatActivity
                                 AddToProject();
                                 break;
                             case "Create Meeting":
-                                CreateMeetingDialog();
-//                                CreateMeeting();
+                                //LinearLayout a1 = (LinearLayout) findViewById(R.id.projects_layout);
+                               // a1.removeViews(1, a1.getChildCount()-1);
+                               // LinearLayout a2 = (LinearLayout) findViewById(R.id.tasks_layout);
+                               // a2.removeViews(1, a2.getChildCount()-1);
+
+                             Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.google.android.calendar");
+
+                                if (launchIntent != null) {
+                                    startActivity(launchIntent);//null pointer check in case package name was not found
+                                }
+
+                               // LinearLayout a3 = (LinearLayout) findViewById(R.id.linearLayout);
+                                //a3.removeViews(4, a3.getChildCount()-1);
+
                                 break;
                         }
                     }
@@ -277,6 +294,13 @@ public class ProfileView extends AppCompatActivity
         super.onStart();
         mAuth.addAuthStateListener(mAuthStateListener);
 
+    }
+
+    @Override
+    public void onResume(){
+        super.onResume();
+       // finish();
+        //startActivity(getIntent());
     }
 
     @Override
