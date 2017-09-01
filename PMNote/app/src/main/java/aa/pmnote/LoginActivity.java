@@ -53,6 +53,8 @@ public class LoginActivity extends AppCompatActivity {
         mGoogleSigninButton = (SignInButton) findViewById(R.id.googleSigninButton);
         mSigninProgressBar = (LinearLayout) findViewById(R.id.signingProgressBar);
 
+        setTitle("Sign in");
+
         mAuth = FirebaseAuth.getInstance();
         mAuthListener = new FirebaseAuth.AuthStateListener() {
             @Override
