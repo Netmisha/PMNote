@@ -12,6 +12,7 @@ import com.google.api.client.json.JsonFactory;
 import com.google.api.client.json.jackson2.JacksonFactory;
 import com.google.api.client.util.ExponentialBackOff;
 
+import com.google.api.services.calendar.Calendar;
 import com.google.api.services.calendar.CalendarScopes;
 import com.google.api.client.util.DateTime;
 
@@ -25,10 +26,12 @@ import android.app.ProgressDialog;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.graphics.Color;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.provider.CalendarContract;
 import android.support.annotation.NonNull;
 import android.text.TextUtils;
 import android.text.method.ScrollingMovementMethod;
@@ -37,6 +40,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
+import android.widget.Space;
 import android.widget.TextView;
 
 import java.io.IOException;
@@ -57,18 +61,29 @@ public class CalendarView extends Activity
     static final int REQUEST_GOOGLE_PLAY_SERVICES = 1002;
     static final int REQUEST_PERMISSION_GET_ACCOUNTS = 1003;
 
-    private static final String BUTTON_TEXT = "Call Google Calendar API";
+
+    private static String BUTTON_TEXT ;
     private static final String PREF_ACCOUNT_NAME = "accountName";
-    private static final String[] SCOPES = { CalendarScopes.CALENDAR_READONLY };
+    private static final String[] SCOPES = { CalendarScopes.CALENDAR};
 
     /**
      * Create the main activity.
      * @param savedInstanceState previously saved instance data.
      */
+    String mName;
+    String mMail;
+    ScrollView sv;
+    LinearLayout activityLayout;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        LinearLayout activityLayout = new LinearLayout(this);
+
+
+        sv = new ScrollView(this);
+           mName =getIntent().getStringExtra("CAL_NAME");
+        mMail = getIntent().getStringExtra("CAL_MAIL");
+        BUTTON_TEXT = "Get Meetings with " + mName ;
+         activityLayout = new LinearLayout(this);
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 LinearLayout.LayoutParams.MATCH_PARENT,
                 LinearLayout.LayoutParams.MATCH_PARENT);
@@ -80,6 +95,8 @@ public class CalendarView extends Activity
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT);
 
+mOutputText = new TextView(CalendarView.this);
+
         mCallApiButton = new Button(this);
         mCallApiButton.setText(BUTTON_TEXT);
         mCallApiButton.setOnClickListener(new View.OnClickListener() {
@@ -87,20 +104,20 @@ public class CalendarView extends Activity
             public void onClick(View v) {
                 mCallApiButton.setEnabled(false);
                 mOutputText.setText("");
+                mOutputText.setTextSize(23);
+                mOutputText.setTextColor(Color.BLACK);
                 getResultsFromApi();
                 mCallApiButton.setEnabled(true);
+                mCallApiButton.setVisibility(View.INVISIBLE);
             }
         });
         activityLayout.addView(mCallApiButton);
+        sv.addView(mOutputText);
 
-        mOutputText = new TextView(this);
-        mOutputText.setLayoutParams(tlp);
-        mOutputText.setPadding(16, 16, 16, 16);
-        mOutputText.setVerticalScrollBarEnabled(true);
-        mOutputText.setMovementMethod(new ScrollingMovementMethod());
-        mOutputText.setText(
-                "Click the \'" + BUTTON_TEXT +"\' button to test the API.");
-        activityLayout.addView(mOutputText);
+        activityLayout.addView(sv);
+
+        //sv.addView();
+
 
         mProgress = new ProgressDialog(this);
         mProgress.setMessage("Calling Google Calendar API ...");
@@ -355,7 +372,7 @@ public class CalendarView extends Activity
             DateTime now = new DateTime(System.currentTimeMillis());
             List<String> eventStrings = new ArrayList<String>();
             Events events = mService.events().list("primary")
-                    .setMaxResults(10)
+                    .setMaxResults(100)
                     .setTimeMin(now)
                     .setOrderBy("startTime")
                     .setSingleEvents(true)
@@ -369,8 +386,38 @@ public class CalendarView extends Activity
                     // the start date.
                     start = event.getStart().getDate();
                 }
-                eventStrings.add(
-                        String.format("%s (%s)", event.getSummary(), start));
+                //
+                //CalendarContract.Attendees attendees
+               List<EventAttendee>  att= event.getAttendees();
+                if (att!= null)
+                 for ( int i = 0; i< att.size() ; i++)
+                 {
+                     EventAttendee human = att.get(i);
+
+                     if (human.getEmail().compareTo(mMail) == 0) {
+                         eventStrings.add(
+                                 String.format("%s : %s", "Summary : ",event.getSummary()));
+                         eventStrings.add(
+                                 String.format("%s : %s", "Time",start));
+                         eventStrings.add(
+                                 String.format("%s : %s", "Loaction",event.getLocation()));
+                         for ( int j = 0; j<= att.size() ; j++) {
+                             EventAttendee human2 = att.get(i);
+                             TextView event_att = new TextView(CalendarView.this);
+                            // eventStrings.add(
+                                    // String.format("%s : %s", "Attendee",human2.getEmail()));
+
+                         }
+                         eventStrings.add(
+                                 String.format("------------------------------"));
+
+                         //AddEventToLayout(event);
+                     }
+
+                 }
+                //eventStrings.add(
+                // String.format("%s", "SUPER"));
+
             }
             return eventStrings;
         }
@@ -414,5 +461,82 @@ public class CalendarView extends Activity
                 mOutputText.setText("Request cancelled.");
             }
         }
+    }
+
+    void AddEventToLayout(Event event)
+    {
+
+
+        TextView event_nameL = new TextView(this);
+        event_nameL.setTextSize(20);
+        event_nameL.setText("Summary: ");
+       /* TextView event_name = new TextView(CalendarView.this);
+        event_name.setText(event.getSummary());
+        TextView event_dateL = new TextView(CalendarView.this);
+        event_dateL.setTextSize(20);
+        event_dateL.setText("Date: ");
+        TextView event_date = new TextView(CalendarView.this);
+        event_date.setText(event.getStart().toString());
+        TextView event_placeL = new TextView(CalendarView.this);
+        event_placeL.setTextSize(20);
+        event_placeL.setText("Place: ");
+        TextView event_place = new TextView(CalendarView.this);
+        String event_p = event.getLocation();
+        if(event_p != null)
+            event_place.setText(event_p);
+        else
+            event_place.setText("-----");
+        TextView event_attL = new TextView(CalendarView.this);
+        event_attL.setTextSize(20);
+        event_attL.setText("Attendee: ");
+
+        event_nameL.setTextSize(20);
+        event_date.setTextSize(20);
+        event_place.setTextSize(20);
+
+*/
+
+
+
+        LinearLayout _layout = new LinearLayout(this);
+        _layout.setOrientation(LinearLayout.VERTICAL);
+        _layout.addView(event_nameL);
+        /*_layout.addView( event_name);
+        _layout.addView(event_dateL);
+        _layout.addView( event_date);
+        _layout.addView(event_placeL);
+        _layout.addView( event_place);
+        _layout.addView(event_attL);
+
+        List<EventAttendee>  att= event.getAttendees();
+        if (att!= null)
+            for ( int i = 0; i< att.size() ; i++)
+            {
+                EventAttendee human = att.get(i);
+                TextView event_att = new TextView(CalendarView.this);
+                event_att.setText(human.getEmail());
+                event_att.setTextSize(20);
+                _layout.addView(event_att);
+            }
+
+        _layout.addView(horizontalDividerFactory());*/
+        sv.addView(_layout);
+       // LinearLayout activityLayout = new LinearLayout(this);
+       // LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
+           //     LinearLayout.LayoutParams.MATCH_PARENT,
+           //     LinearLayout.LayoutParams.MATCH_PARENT);
+      //  activityLayout.setLayoutParams(lp);
+       // activityLayout.setOrientation(LinearLayout.VERTICAL);
+       // activityLayout.setPadding(16, 16, 16, 16);
+       // activityLayout.addView(sv);
+        setContentView(activityLayout);
+
+    }
+    private View horizontalDividerFactory()
+    {
+        View hd = new View(this);
+        hd.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 1));
+        hd.setBackgroundColor(Color.GRAY);
+        return hd;
     }
 }

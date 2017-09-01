@@ -177,11 +177,10 @@ public class ProfileView extends AppCompatActivity
 
 
                 AlertDialog.Builder builder;
-                final String[] mItemsName = {"Note", "Checkbox", "Slider",  "Combobox", "Spinbox", "Add Task", "Attach to Project", "Create Meeting"};
+                final String[] mItemsName = {"Note", "Checkbox", "Slider",  "Combobox", "Spinbox", "Add Task", "Attach to Project", "Create Meeting", "Check Meetings"};
 
                 builder = new AlertDialog.Builder(ProfileView.this);
                 builder.setTitle("Add ..."); // tite
-
                 builder.setItems(mItemsName, new DialogInterface.OnClickListener() {
                     @Override
                     public void onClick(DialogInterface dialog, int item) {
@@ -206,25 +205,21 @@ public class ProfileView extends AppCompatActivity
                             case "Attach to Project":
                                 AddToProject();
                                 break;
-                            case "Create Meeting":
-                                //LinearLayout a1 = (LinearLayout) findViewById(R.id.projects_layout);
-                               // a1.removeViews(1, a1.getChildCount()-1);
-                               // LinearLayout a2 = (LinearLayout) findViewById(R.id.tasks_layout);
-                               // a2.removeViews(1, a2.getChildCount()-1);
+                            case "Check Meetings":
+                                Intent i = new Intent(ProfileView.this, CalendarView.class);
+                                i.putExtra("CAL_NAME", mName);
+                                i.putExtra("CAL_MAIL",((TextView) findViewById(R.id.mail)).getText().toString() );
+                                startActivity(i);
+                                break;
 
-                             /*Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.google.android.calendar");
+                            case "Create Meeting":
+                                Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.google.android.calendar");
 
                                 if (launchIntent != null) {
                                     startActivity(launchIntent);//null pointer check in case package name was not found
-                                }*/
-
-                                Intent i = new Intent(ProfileView.this, CalendarView.class);
-                                startActivity(i);
-
-                               // LinearLayout a3 = (LinearLayout) findViewById(R.id.linearLayout);
-                                //a3.removeViews(4, a3.getChildCount()-1);
-
+                                }
                                 break;
+
                         }
                     }
                 });
