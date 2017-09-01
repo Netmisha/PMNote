@@ -742,7 +742,7 @@ public class ProjectsView extends AppCompatActivity {
                         mRoot = ((ProjectsView) getActivity()).GetRootRef();
 
                         if(getArguments().getInt(ARG_SECTION_NUMBER) - 1 == Defines.PROJECT_TASKS_FRAGMENT) {
-                            mLinearLayout.addView(mExpiredTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Expired"));
+                            mLinearLayout.addView(mExpiredTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Overdue"));
                             mExpiredTasks.setVisibility(View.GONE);
                             mLinearLayout.addView(mTodayTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Less than a day"));
                             mTodayTasks.setVisibility(View.GONE);
@@ -791,16 +791,16 @@ public class ProjectsView extends AppCompatActivity {
             LinearLayout ll = mLinearLayout;
             switch (search_option) {
                 case 0:
-                    for (int i = 0; i < ll.getChildCount() - 1; ++i) {
+                    for (int i = 0; i < ll.getChildCount() - 2; ++i) {
                         LinearLayout mll = (LinearLayout)ll.getChildAt(i);
                         for(int j = 2; j < mll.getChildCount(); j += Defines.ITEM_SIZE_IN_VIEWS){
-                            boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(i)).getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).isChecked();
+                            boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(j)).getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).isChecked();
                             if (isCompeted) {
-                                mll.getChildAt(i).setVisibility(View.GONE);
-                                mll.getChildAt(i + 1).setVisibility(View.GONE);
+                                mll.getChildAt(j).setVisibility(View.GONE);
+                                mll.getChildAt(j + 1).setVisibility(View.GONE);
                             } else {
-                                mll.getChildAt(i).setVisibility(View.VISIBLE);
-                                mll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                                mll.getChildAt(j).setVisibility(View.VISIBLE);
+                                mll.getChildAt(j + 1).setVisibility(View.VISIBLE);
                             }
                         }
                         if(Defines.isListGone(mll))
@@ -810,22 +810,23 @@ public class ProjectsView extends AppCompatActivity {
                     }
                     break;
                 case 1:
-                    for (int i = 0; i < ll.getChildCount() - 1; ++i) {
+                    for (int i = 0; i < ll.getChildCount() - 2; ++i) {
                         LinearLayout mll = (LinearLayout)ll.getChildAt(i);
                         for(int j = 2; j < mll.getChildCount(); j += Defines.ITEM_SIZE_IN_VIEWS){
-                            boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(i)).getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).isChecked();
+                            boolean isCompeted = ((CheckBox) ((LinearLayout) mll.getChildAt(j)).getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).isChecked();
                             if (!isCompeted) {
-                                mll.getChildAt(i).setVisibility(View.GONE);
-                                mll.getChildAt(i + 1).setVisibility(View.GONE);
+                                mll.getChildAt(j).setVisibility(View.GONE);
+                                mll.getChildAt(j + 1).setVisibility(View.GONE);
+                                if(Defines.isListGone(mll))
+                                    mll.setVisibility(View.GONE);
                             } else {
-                                mll.getChildAt(i).setVisibility(View.VISIBLE);
-                                mll.getChildAt(i + 1).setVisibility(View.VISIBLE);
+                                mll.getChildAt(j).setVisibility(View.VISIBLE);
+                                mll.getChildAt(j + 1).setVisibility(View.VISIBLE);
+                                mll.setVisibility(View.VISIBLE);
                             }
                         }
                         if(Defines.isListGone(mll))
                             mll.setVisibility(View.GONE);
-                        else
-                            mll.setVisibility(View.VISIBLE);
                     }
                     break;
             }
