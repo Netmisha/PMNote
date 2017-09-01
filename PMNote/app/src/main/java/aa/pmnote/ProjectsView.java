@@ -468,7 +468,6 @@ public class ProjectsView extends AppCompatActivity {
     public boolean onContextItemSelected(MenuItem item) {
         final String key = ((TextView) ((LinearLayout) last_context_selected).getChildAt(Defines.TEXT_VIEW_POSITION)).getText().toString();
 
-        DatabaseReference child = null;
         switch (item.getItemId()) {
             case 1:
                 last_context_selected.callOnClick();
