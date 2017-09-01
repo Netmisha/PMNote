@@ -212,11 +212,14 @@ public class ProfileView extends AppCompatActivity
                                // LinearLayout a2 = (LinearLayout) findViewById(R.id.tasks_layout);
                                // a2.removeViews(1, a2.getChildCount()-1);
 
-                             Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.google.android.calendar");
+                             /*Intent launchIntent = getPackageManager().getLaunchIntentForPackage("com.google.android.calendar");
 
                                 if (launchIntent != null) {
                                     startActivity(launchIntent);//null pointer check in case package name was not found
-                                }
+                                }*/
+
+                                Intent i = new Intent(ProfileView.this, CalendarView.class);
+                                startActivity(i);
 
                                // LinearLayout a3 = (LinearLayout) findViewById(R.id.linearLayout);
                                 //a3.removeViews(4, a3.getChildCount()-1);

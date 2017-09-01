@@ -744,7 +744,7 @@ public class ProjectsView extends AppCompatActivity {
                         if(getArguments().getInt(ARG_SECTION_NUMBER) - 1 == Defines.PROJECT_TASKS_FRAGMENT) {
                             mLinearLayout.addView(mExpiredTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Overdue"));
                             mExpiredTasks.setVisibility(View.GONE);
-                            mLinearLayout.addView(mTodayTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Less than a day"));
+                            mLinearLayout.addView(mTodayTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Today"));
                             mTodayTasks.setVisibility(View.GONE);
                             mLinearLayout.addView(mWeekTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "7 days"));
                             mWeekTasks.setVisibility(View.GONE);
