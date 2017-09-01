@@ -83,7 +83,8 @@ public class Defines {
     final static String COMPLETED_TASKS = "Completed";
     final static String NEW_LIST = "New list";
 
-    final static String NO_TASKS_TEXT = "Nothing, great job!";
+    final static String NO_TASKS_TITLE = "No Tasks Today";
+    final static String NO_TASKS_TEXT = "Great job!";
     final static String NOTIFICATION_FLAG = "NF";
 
     final static InputFilter NAME_FILTER = new InputFilter() {

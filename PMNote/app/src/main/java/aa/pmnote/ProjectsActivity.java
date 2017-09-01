@@ -112,6 +112,7 @@ public class ProjectsActivity extends AppCompatActivity {
     private NotificationCompat.Builder mNotificationBuilder = null;
     private NotificationManager mNotificationManager = null;
     private int mTodayTasks = 0;
+    private int mOverdueTasks = 0;
 
     public void RefreshCurrentFragment() {
         HideItemsBySearchOptions(mSearchOptions.getSelectedItemPosition());
@@ -285,25 +286,52 @@ public class ProjectsActivity extends AppCompatActivity {
     }
 
     public void updateNotification() {
-        String notificationText = (mTodayTasks == 0 ? "" : mTodayTasks + " Task" + (mTodayTasks != 1 ? "s" : ""));
+        String notificationTitle = "";
+        String notificationText = "";
+        if(mTodayTasks != 0) {
+            notificationTitle += mTodayTasks + " ";
+            notificationText += "Today";
+        }
+        if(mOverdueTasks != 0) {
+            notificationTitle += (mTodayTasks == 0 ? "" : "+ ") + mOverdueTasks;
+
+            if(!notificationText.isEmpty())
+                notificationText += " + ";
+
+            notificationText += "Overdue";
+        }
+
+        notificationTitle += " Task" + (mTodayTasks + mOverdueTasks == 1 ? "" : "s");
 
         if (notificationText.isEmpty())
-            mNotificationBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText(Defines.NO_TASKS_TEXT))
+            mNotificationBuilder
+                    .setContentTitle(Defines.NO_TASKS_TITLE)
                     .setContentText(Defines.NO_TASKS_TEXT);
         else {
-            mNotificationBuilder.setStyle(new NotificationCompat.BigTextStyle().bigText(notificationText))
+            mNotificationBuilder
+                    .setContentTitle(notificationTitle)
                     .setContentText(notificationText);
         }
 
         mNotificationManager.notify(mNotificationID, mNotificationBuilder.build());
     }
 
-    public void removeFromNotification() {
+    public void removeOverdueTaskFromNotification(){
+        mOverdueTasks--;
+        updateNotification();
+    }
+
+    public void addOvedrueTaskToNotification(){
+        mOverdueTasks++;
+        updateNotification();
+    }
+
+    public void removeTodayTaskFromNotification() {
         mTodayTasks--;
         updateNotification();
     }
 
-    public void addToNotification() {
+    public void addTodayTaskToNotification() {
         mTodayTasks++;
         updateNotification();
     }
@@ -319,7 +347,7 @@ public class ProjectsActivity extends AppCompatActivity {
         mNotificationBuilder = new NotificationCompat.Builder(ProjectsActivity.this)
                 .setSmallIcon(android.R.drawable.ic_menu_report_image)
                 .setTicker("PMNote")
-                .setContentTitle("Today tasks")
+                .setContentTitle("No Today Tasks")
                 .setContentText(Defines.NO_TASKS_TEXT)
                 .setAutoCancel(true)
                 .setOngoing(true)
@@ -509,6 +537,7 @@ public class ProjectsActivity extends AppCompatActivity {
             @Override
             public void onAuthStateChanged(@NonNull FirebaseAuth firebaseAuth) {
                 if (firebaseAuth.getCurrentUser() == null) {
+                    mNotificationManager.cancel(mNotificationID);
                     finish();
                 } else {
                     mUID = firebaseAuth.getCurrentUser().getUid();
@@ -1194,7 +1223,7 @@ public class ProjectsActivity extends AppCompatActivity {
                                 SetUpProjectsPersonList(mRootRef);
                                 break;
                             case Defines.TASKS_FRAGMENT:
-                                mLinearLayout.addView(mExpiredTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Expired"));
+                                mLinearLayout.addView(mExpiredTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Overdue"));
                                 mExpiredTasks.setVisibility(View.GONE);
                                 mLinearLayout.addView(mTodayTasks = ViewFactory.titledLinearLayoutFactory(getActivity(), "Today"));
                                 mTodayTasks.setVisibility(View.GONE);
@@ -1344,8 +1373,11 @@ public class ProjectsActivity extends AppCompatActivity {
                     String date = dataSnapshot.child(Defines.TASK_DATE).getValue(String.class);
                     String time = dataSnapshot.child(Defines.TASK_TIME).getValue(String.class);
                     String name = dataSnapshot.getKey();
-                    if(Defines.GetTaskType(date, time, status) == Defines.TaskType.TODAY)
-                        ((ProjectsActivity)getActivity()).removeFromNotification();
+                    Defines.TaskType tt = Defines.GetTaskType(date, time, status);
+                    if(tt == Defines.TaskType.TODAY)
+                        ((ProjectsActivity)getActivity()).removeTodayTaskFromNotification();
+                    else if(tt == Defines.TaskType.EXPIRED)
+                        ((ProjectsActivity)getActivity()).removeOverdueTaskFromNotification();
                 }
 
                 @Override
@@ -1367,8 +1399,11 @@ public class ProjectsActivity extends AppCompatActivity {
 
         private void PrepareToAddTask(String name, boolean status, String date, String time) {
             AddItem(name, status, Defines.GetTaskType(date, time, status));
-            if(Defines.GetTaskType(date, time, status) == Defines.TaskType.TODAY)
-                ((ProjectsActivity)getActivity()).addToNotification();
+            Defines.TaskType tt = Defines.GetTaskType(date, time, status);
+            if(tt == Defines.TaskType.TODAY)
+                ((ProjectsActivity)getActivity()).addTodayTaskToNotification();
+            else if(tt == Defines.TaskType.EXPIRED)
+                ((ProjectsActivity)getActivity()).addOvedrueTaskToNotification();
         }
 
         private void AddItem(String name, boolean checkBoxStatus, Defines.TaskType tt) {
@@ -1394,22 +1429,34 @@ public class ProjectsActivity extends AppCompatActivity {
 
             ((CheckBox) ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
                 @Override
-                public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                    String name = (String) ((CheckBox) ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).getTag();
+                public void onCheckedChanged(CompoundButton compoundButton, boolean isChecked) {
+                    final boolean b = isChecked;
+                    final String name = (String) ((CheckBox) ll.getChildAt(ViewFactory.LINEAR_LAYOUT_CHECKBOX_POSITION)).getTag();
                     mRootRef.child(Defines.TASKS_FOLDER).child(name).child(Defines.TASK_STATUS).setValue(String.valueOf(b));
 
-                    String text = ((TextView)((LinearLayout)ll.getParent()).getChildAt(0)).getText().toString();
+                    mRootRef.child(Defines.TASKS_FOLDER).child(name).addListenerForSingleValueEvent(new ValueEventListener() {
+                        @Override
+                        public void onDataChange(DataSnapshot dataSnapshot) {
+                            String date = dataSnapshot.child(Defines.TASK_DATE).getValue(String.class);
+                            String time = dataSnapshot.child(Defines.TASK_TIME).getValue(String.class);
+                            Defines.TaskType tt = Defines.GetTaskType(date, time, false);
+                            if(b) {
+                                Toast.makeText(getActivity(), "Moving task to Completed", Toast.LENGTH_SHORT).show();
+                                if(tt == Defines.TaskType.TODAY)
+                                    ((ProjectsActivity)getActivity()).removeTodayTaskFromNotification();
+                                else if(tt == Defines.TaskType.EXPIRED)
+                                    ((ProjectsActivity)getActivity()).removeOverdueTaskFromNotification();
+                            }
+                            else {
+                                Toast.makeText(getActivity(), "Moving task to redo", Toast.LENGTH_SHORT).show();
+                            }
+                        }
 
-                    if(b) {
-                        Toast.makeText(getActivity(), "Moving task to Completed", Toast.LENGTH_SHORT).show();
-                        if(((TextView)((LinearLayout)ll.getParent()).getChildAt(0)).getText().toString().equals("Today"))
-                            ((ProjectsActivity)getActivity()).removeFromNotification();
-                    }
-                    else {
-                        Toast.makeText(getActivity(), "Moving task to redo", Toast.LENGTH_SHORT).show();
-                        if(((TextView)((LinearLayout)ll.getParent()).getChildAt(0)).getText().toString().equals("Today"))
-                            ((ProjectsActivity)getActivity()).addToNotification();
-                    }
+                        @Override
+                        public void onCancelled(DatabaseError databaseError) {
+
+                        }
+                    });
 
                     ((ProjectsActivity)getActivity()).RefreshTasksList();
                 }
